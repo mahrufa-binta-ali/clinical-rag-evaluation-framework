@@ -1,4 +1,4 @@
-# clinical-rag-retrieval-api
+# clinical-rag-evaluation-framework
 
 A clean first-stage retrieval pipeline for healthcare AI research. The project ingests public or synthetic clinical documents, extracts text from PDFs, chunks the text with overlap, embeds the chunks with a local sentence-transformers model, stores vectors in ChromaDB, and retrieves the most relevant passages from the terminal.
 
@@ -29,7 +29,7 @@ This project provides the retrieval layer needed for later RAG experiments while
 ## Project Structure
 
 ```text
-clinical-rag-retrieval-api/
+clinical-rag-evaluation-framework/
 |-- config.py
 |-- ingest.py
 |-- query.py
