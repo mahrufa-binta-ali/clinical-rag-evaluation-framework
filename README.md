@@ -33,6 +33,8 @@ clinical-rag-evaluation-framework/
 |-- config.py
 |-- ingest.py
 |-- query.py
+|-- evaluate.py
+|-- eval_queries.json
 |-- requirements.txt
 |-- README.md
 |-- .gitignore
@@ -134,15 +136,16 @@ Set the number of retrieved chunks used for each evaluation query:
 python evaluate.py --top-k 5
 ```
 
-The evaluation file, `eval_queries.json`, contains expected source documents and expected evidence keywords for questions about `MIMIC-IV.pdf` and `retrieval_augmented_generation.pdf`.
+The evaluation file, `eval_queries.json`, contains expected source documents, expected evidence keywords, and expected evidence phrases for questions about `MIMIC-IV.pdf` and `retrieval_augmented_generation.pdf`.
 
 Metrics:
 
-- Recall@K measures whether the expected source document appears within the top K retrieved chunks. For example, Recall@3 passes for a query if any of the top 3 chunks comes from the expected PDF.
+- Source Recall@K measures whether the expected source document appears within the top K retrieved chunks. For example, Source Recall@3 passes for a query if any of the top 3 chunks comes from the expected PDF.
 - MRR, or Mean Reciprocal Rank, rewards systems that return the expected source earlier. A match at rank 1 gets `1.0`, rank 2 gets `0.5`, rank 3 gets `0.333`, and missing results get `0.0`.
 - Average keyword hit rate measures how many expected evidence keywords appear across the retrieved chunks.
+- Evidence Phrase Recall@K measures whether any expected evidence phrase appears in the top K retrieved chunks after case-insensitive whitespace normalization.
 
-Retrieval evaluation matters for healthcare AI and RAG systems because the generation layer, if added later, can only be as trustworthy as the evidence it receives. Source recall checks whether the system finds the right document, while keyword coverage gives a lightweight signal that the retrieved passages contain useful clinical or technical evidence.
+Retrieval evaluation matters for healthcare AI and RAG systems because the generation layer, if added later, can only be as trustworthy as the evidence it receives. Source-level evaluation checks whether the system finds the right document, but it can be easy when there are only a few documents. Evidence-level evaluation is stricter because it checks whether the retrieved chunks contain specific useful passages, not just the correct PDF filename.
 
 ## Design Decisions
 
@@ -166,7 +169,7 @@ Retrieval evaluation matters for healthcare AI and RAG systems because the gener
 ## Future Work
 
 - FastAPI API for ingestion and retrieval endpoints.
-- Retrieval evaluation metrics such as recall@k, MRR, and nDCG.
+- Broader retrieval evaluation metrics such as nDCG and graded relevance labels.
 - Docker packaging for reproducible deployment.
 - Authentication for API access.
 - Audit logging for document ingestion and retrieval events.

@@ -23,6 +23,7 @@ class EvalQuery:
     query: str
     expected_source: str
     expected_keywords: list[str]
+    expected_evidence_phrases: list[str]
 
 
 @dataclass(frozen=True)
@@ -31,9 +32,11 @@ class EvalResult:
     top_sources: list[str]
     first_matching_rank: int | None
     keyword_hits: list[str]
+    evidence_phrase_hits: list[str]
     recall_at_1: bool
     recall_at_3: bool
     recall_at_5: bool
+    evidence_phrase_recall_at_k: bool
 
     @property
     def reciprocal_rank(self) -> float:
@@ -59,6 +62,7 @@ def load_eval_queries(path: Path) -> list[EvalQuery]:
                 query=item["query"],
                 expected_source=item["expected_source"],
                 expected_keywords=list(item["expected_keywords"]),
+                expected_evidence_phrases=list(item["expected_evidence_phrases"]),
             )
         )
     return queries
@@ -97,6 +101,15 @@ def normalize_text(text: str) -> str:
     return " ".join(normalized.split())
 
 
+def normalize_evidence_text(text: str) -> str:
+    normalized = text.lower()
+    normalized = normalized.replace("“", '"').replace("”", '"')
+    normalized = normalized.replace("‘", "'").replace("’", "'")
+    normalized = re.sub(r"(\w)-\s+(\w)", r"\1\2", normalized)
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized.strip()
+
+
 def find_first_matching_rank(sources: list[str], expected_source: str) -> int | None:
     for index, source in enumerate(sources, start=1):
         if source == expected_source:
@@ -111,6 +124,20 @@ def find_keyword_hits(documents: list[str], expected_keywords: list[str]) -> lis
     for keyword in expected_keywords:
         if normalize_text(keyword) in joined_documents:
             hits.append(keyword)
+
+    return hits
+
+
+def find_evidence_phrase_hits(
+    documents: list[str],
+    expected_phrases: list[str],
+) -> list[str]:
+    joined_documents = normalize_evidence_text(" ".join(documents))
+    hits: list[str] = []
+
+    for phrase in expected_phrases:
+        if normalize_evidence_text(phrase) in joined_documents:
+            hits.append(phrase)
 
     return hits
 
@@ -135,15 +162,21 @@ def evaluate_query(
         eval_query.expected_source,
     )
     keyword_hits = find_keyword_hits(documents, eval_query.expected_keywords)
+    evidence_phrase_hits = find_evidence_phrase_hits(
+        documents,
+        eval_query.expected_evidence_phrases,
+    )
 
     return EvalResult(
         query=eval_query,
         top_sources=top_sources,
         first_matching_rank=first_matching_rank,
         keyword_hits=keyword_hits,
+        evidence_phrase_hits=evidence_phrase_hits,
         recall_at_1=first_matching_rank == 1,
         recall_at_3=first_matching_rank is not None and first_matching_rank <= 3,
         recall_at_5=first_matching_rank is not None and first_matching_rank <= 5,
+        evidence_phrase_recall_at_k=bool(evidence_phrase_hits),
     )
 
 
@@ -168,9 +201,24 @@ def print_query_report(result: EvalResult) -> None:
     else:
         print("Matched keywords: none")
 
-    print(f"Recall@1: {format_bool(result.recall_at_1)}")
-    print(f"Recall@3: {format_bool(result.recall_at_3)}")
-    print(f"Recall@5: {format_bool(result.recall_at_5)}")
+    expected_phrase_count = len(result.query.expected_evidence_phrases)
+    print(
+        f"Evidence phrase hits: "
+        f"{len(result.evidence_phrase_hits)}/{expected_phrase_count}"
+    )
+    if result.evidence_phrase_hits:
+        for phrase in result.evidence_phrase_hits:
+            print(f"- {phrase}")
+    else:
+        print("Matched evidence phrases: none")
+
+    print(f"Source Recall@1: {format_bool(result.recall_at_1)}")
+    print(f"Source Recall@3: {format_bool(result.recall_at_3)}")
+    print(f"Source Recall@5: {format_bool(result.recall_at_5)}")
+    print(
+        "Evidence Phrase Recall@K: "
+        f"{format_bool(result.evidence_phrase_recall_at_k)}"
+    )
 
 
 def print_aggregate_report(results: list[EvalResult]) -> None:
@@ -184,14 +232,18 @@ def print_aggregate_report(results: list[EvalResult]) -> None:
     recall_at_5 = sum(result.recall_at_5 for result in results) / total
     mrr = sum(result.reciprocal_rank for result in results) / total
     keyword_hit_rate = sum(result.keyword_hit_rate for result in results) / total
+    evidence_phrase_recall = (
+        sum(result.evidence_phrase_recall_at_k for result in results) / total
+    )
 
     print("=" * 80)
     print("Aggregate Metrics")
-    print(f"Recall@1: {recall_at_1:.3f}")
-    print(f"Recall@3: {recall_at_3:.3f}")
-    print(f"Recall@5: {recall_at_5:.3f}")
+    print(f"Source Recall@1: {recall_at_1:.3f}")
+    print(f"Source Recall@3: {recall_at_3:.3f}")
+    print(f"Source Recall@5: {recall_at_5:.3f}")
     print(f"MRR: {mrr:.3f}")
     print(f"Average keyword hit rate: {keyword_hit_rate:.3f}")
+    print(f"Evidence Phrase Recall@K: {evidence_phrase_recall:.3f}")
 
 
 def run_evaluation(eval_file: Path, persist_dir: Path, top_k: int) -> None:
