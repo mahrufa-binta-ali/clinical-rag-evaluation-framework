@@ -1,0 +1,92 @@
+[
+  {
+    "query": "What is MIMIC-IV?",
+    "expected_source": "MIMIC-IV.pdf",
+    "expected_keywords": [
+      "electronic health record",
+      "publicly available",
+      "clinical data"
+    ]
+  },
+  {
+    "query": "What hospital is MIMIC-IV sourced from?",
+    "expected_source": "MIMIC-IV.pdf",
+    "expected_keywords": [
+      "Beth Israel Deaconess Medical Center",
+      "BIDMC",
+      "routine clinical care"
+    ]
+  },
+  {
+    "query": "What years of admissions does MIMIC-IV cover?",
+    "expected_source": "MIMIC-IV.pdf",
+    "expected_keywords": [
+      "2008",
+      "2019",
+      "decade of admissions"
+    ]
+  },
+  {
+    "query": "How was MIMIC-IV deidentified?",
+    "expected_source": "MIMIC-IV.pdf",
+    "expected_keywords": [
+      "deidentified",
+      "HIPAA",
+      "identifiers"
+    ]
+  },
+  {
+    "query": "What modules are included in MIMIC-IV?",
+    "expected_source": "MIMIC-IV.pdf",
+    "expected_keywords": [
+      "hosp",
+      "icu",
+      "note"
+    ]
+  },
+  {
+    "query": "What is retrieval augmented generation?",
+    "expected_source": "retrieval_augmented_generation.pdf",
+    "expected_keywords": [
+      "external databases",
+      "knowledge-intensive tasks",
+      "continuous knowledge updates"
+    ]
+  },
+  {
+    "query": "What are the main components of RAG?",
+    "expected_source": "retrieval_augmented_generation.pdf",
+    "expected_keywords": [
+      "Retrieval",
+      "Generation",
+      "Augmentation"
+    ]
+  },
+  {
+    "query": "How does the naive RAG process work?",
+    "expected_source": "retrieval_augmented_generation.pdf",
+    "expected_keywords": [
+      "indexing",
+      "retrieval",
+      "generation"
+    ]
+  },
+  {
+    "query": "How are documents stored for retrieval in RAG?",
+    "expected_source": "retrieval_augmented_generation.pdf",
+    "expected_keywords": [
+      "chunks",
+      "vectors",
+      "vector database"
+    ]
+  },
+  {
+    "query": "What tools or benchmarks are used to evaluate RAG?",
+    "expected_source": "retrieval_augmented_generation.pdf",
+    "expected_keywords": [
+      "RAGAS",
+      "ARES",
+      "TruLens"
+    ]
+  }
+]
