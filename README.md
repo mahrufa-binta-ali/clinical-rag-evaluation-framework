@@ -172,7 +172,7 @@ By default, retrieval is vector-only: ChromaDB returns the nearest chunks from t
 The CLI remains the main transparent research workflow, but the project also includes a small FastAPI layer for portfolio-ready API integration. Start the API after installing the package:
 
 ```bash
-uvicorn clinical_rag_eval.api:app --reload
+python -m uvicorn clinical_rag_eval.api:app --reload
 ```
 
 Available endpoints:
