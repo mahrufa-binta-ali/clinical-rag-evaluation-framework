@@ -227,7 +227,20 @@ Embedding model choice matters because semantic retrieval depends on how well a 
 
 ## Results
 
-Embedding model comparison can be run on the expanded 25-query benchmark. The latest run showed that all three embedding models retrieved the correct source document at rank 1, while `BAAI/bge-small-en-v1.5` performed best on evidence-level retrieval, with the strongest keyword hit rate and evidence phrase recall. It is now the default embedding model.
+Latest retrieval benchmark setup:
+
+- 25 evaluation queries.
+- Default embedding model: `BAAI/bge-small-en-v1.5`.
+- Token-aware chunking: 256 tokens with 50-token overlap.
+
+| Mode | Source R@1 | Source R@3 | Source R@5 | MRR | Average Keyword Hit Rate | Evidence Phrase Recall@K |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Vector-only retrieval | 1.000 | 1.000 | 1.000 | 1.000 | 0.800 | 0.760 |
+| Cross-encoder reranking | 1.000 | 1.000 | 1.000 | 1.000 | 0.880 | 0.840 |
+
+Reranking preserved perfect source-level retrieval and improved evidence-level retrieval by `+0.080` on both average keyword hit rate and evidence phrase recall. Reranking is optional because it is slower than vector-only retrieval.
+
+Embedding model comparison can also be run on the expanded 25-query benchmark. The latest model comparison showed that all three embedding models retrieved the correct source document at rank 1, while `BAAI/bge-small-en-v1.5` performed best on evidence-level retrieval, with the strongest keyword hit rate and evidence phrase recall. It is now the default embedding model.
 
 Exact comparison metrics are written to `results/embedding_comparison.json` and `results/embedding_comparison.csv` when `python compare_embeddings.py` is run. The phrase-level score is intentionally strict and is sensitive to chunk boundaries and PDF text normalization. Because the benchmark currently uses only two PDFs, these results should be interpreted as an initial validation experiment rather than a broad generalization claim.
 
@@ -247,7 +260,8 @@ Exact comparison metrics are written to `results/embedding_comparison.json` and 
 - PDF extraction quality depends on the source PDF. Scanned PDFs need OCR, which is not included.
 - Token-aware chunking depends on loading the embedding model tokenizer; if that fails, the pipeline falls back to character-based chunking.
 - The 25-query evaluation set is intended as a small validation benchmark, not a broad benchmark.
-- Cross-encoder reranking is available, but hybrid BM25/vector retrieval and query rewriting are not included.
+- Cross-encoder reranking is implemented as an optional slower mode.
+- Hybrid BM25/vector retrieval and query rewriting are not included.
 - The terminal interface is intended for research and debugging, not production use.
 - Retrieved passages are not medical advice and should not be treated as clinical guidance.
 
