@@ -201,6 +201,28 @@ python -m clinical_rag_eval.langchain_retriever "What is retrieval augmented gen
 
 Each result prints the source filename, page number, chunk index, vector distance, and a readable text preview.
 
+## FastAPI API Layer
+
+This project includes a lightweight FastAPI layer for interacting with the retrieval system through API endpoints.
+
+Available endpoints:
+
+- `GET /health` — checks whether the API is running
+- `POST /upload` — uploads PDF files into the local data directory
+- `POST /query` — retrieves relevant chunks from the ChromaDB vector store
+
+### API Documentation
+
+![FastAPI Docs Overview](docs/screenshots/fastapi-docs-overview.png)
+
+### Health Check Response
+
+![Health Endpoint Response](docs/screenshots/health-endpoint-response.png)
+
+### Query Endpoint Response
+
+![Query Endpoint Response](docs/screenshots/query-endpoint-response.png)
+
 ## Run Retrieval Evaluation
 
 After running ingestion, evaluate retrieval quality with the bundled query set:
