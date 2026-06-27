@@ -192,9 +192,19 @@ Metrics:
 - Source Recall@K measures whether the expected source document appears within the top K retrieved chunks. For example, Source Recall@3 passes for a query if any of the top 3 chunks comes from the expected PDF.
 - MRR, or Mean Reciprocal Rank, rewards systems that return the expected source earlier. A match at rank 1 gets `1.0`, rank 2 gets `0.5`, rank 3 gets `0.333`, and missing results get `0.0`.
 - Average keyword hit rate measures how many expected evidence keywords appear across the retrieved chunks.
-- Evidence Phrase Recall@K measures whether any expected evidence phrase appears in the top K retrieved chunks after case-insensitive whitespace normalization.
+- Evidence Phrase Recall@K measures whether any expected evidence phrase appears in the top K retrieved chunks using exact normalized phrase matching. Matching is case-insensitive and whitespace-normalized, but it may undercount useful evidence when PDF extraction changes punctuation or when chunk boundaries split a phrase.
 
 Retrieval evaluation matters for healthcare AI and RAG systems because the generation layer, if added later, can only be as trustworthy as the evidence it receives. Source-level evaluation checks whether the system finds the right document, but it can be easy when there are only a few documents. Evidence-level evaluation is stricter because it checks whether the retrieved chunks contain specific useful passages, not just the correct PDF filename.
+
+## Run Tests
+
+Run the lightweight utility test suite:
+
+```bash
+python -m pytest
+```
+
+The tests cover text normalization, character chunking, low-value chunk filtering, keyword matching, and evidence phrase matching. They do not require PDFs, ChromaDB, or model downloads.
 
 ## Compare Embedding Models
 
@@ -216,7 +226,7 @@ Set the retrieval depth used for evaluation:
 python compare_embeddings.py --top-k 5
 ```
 
-For each model, the script builds a temporary Chroma vector store from the same PDFs in `data/`, runs `eval_queries.json`, prints a comparison table, and saves results to:
+For each model, the script builds a temporary Chroma vector store from the same PDFs in `data/`, using the same fixed token-aware chunk set for controlled comparison. It then runs `eval_queries.json`, prints a comparison table, and saves results to:
 
 ```text
 results/embedding_comparison.json
