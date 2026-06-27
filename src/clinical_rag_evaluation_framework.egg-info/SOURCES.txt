@@ -4,6 +4,7 @@ src/clinical_rag_eval/__init__.py
 src/clinical_rag_eval/config.py
 src/clinical_rag_eval/evaluate.py
 src/clinical_rag_eval/ingest.py
+src/clinical_rag_eval/langchain_retriever.py
 src/clinical_rag_eval/query.py
 src/clinical_rag_eval/rerank.py
 src/clinical_rag_evaluation_framework.egg-info/PKG-INFO

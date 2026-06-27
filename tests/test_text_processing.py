@@ -1,5 +1,6 @@
 from clinical_rag_eval.evaluate import find_evidence_phrase_hits, find_keyword_hits
 from clinical_rag_eval.ingest import chunk_text, is_low_value_chunk, normalize_text
+from clinical_rag_eval.langchain_retriever import preview_text
 
 
 def test_normalize_text_collapses_whitespace() -> None:
@@ -60,3 +61,11 @@ def test_evidence_phrase_matching_normalizes_whitespace() -> None:
         "split into chunks, encoded into vectors",
         "stored in a vector database",
     ]
+
+
+def test_langchain_preview_cleans_text_without_model_downloads() -> None:
+    text = "Retrieval-\naugmented   generation\nuses retrieved context."
+
+    assert preview_text(text, max_chars=80) == (
+        "Retrieval-augmented generation uses retrieved context."
+    )

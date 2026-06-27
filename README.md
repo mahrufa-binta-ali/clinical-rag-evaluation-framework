@@ -36,6 +36,7 @@ clinical-rag-evaluation-framework/
 |       |-- config.py
 |       |-- ingest.py
 |       |-- query.py
+|       |-- langchain_retriever.py
 |       |-- rerank.py
 |       `-- evaluate.py
 |-- compare_embeddings.py
@@ -165,6 +166,24 @@ Each result includes the source filename, page number, chunk index, vector dista
 
 By default, retrieval is vector-only: ChromaDB returns the nearest chunks from the embedding space. With `--rerank`, the system first retrieves `--candidate-k` vector candidates, then uses `cross-encoder/ms-marco-MiniLM-L-6-v2` to score each query-chunk pair and reorder the final top-k results. Reranking can improve evidence-level retrieval, but it is slower because every candidate is scored by a cross-encoder.
 
+## Optional LangChain Retrieval Demo
+
+The main retrieval pipeline is implemented directly with ChromaDB and SentenceTransformers for transparency and easier debugging. LangChain is included as an optional wrapper using `langchain-chroma` and `langchain-huggingface` to demonstrate framework integration over the same persisted Chroma collection. This is still retrieval-only; it does not add LLM-based RAG answer generation.
+
+Run the demo after ingestion:
+
+```bash
+python -m clinical_rag_eval.langchain_retriever "What is MIMIC-IV?"
+```
+
+Set the number of retrieved chunks:
+
+```bash
+python -m clinical_rag_eval.langchain_retriever "What is retrieval augmented generation?" --top-k 5
+```
+
+Each result prints the source filename, page number, chunk index, vector distance, and a readable text preview.
+
 ## Run Retrieval Evaluation
 
 After running ingestion, evaluate retrieval quality with the bundled query set:
@@ -267,6 +286,7 @@ Exact comparison metrics are written to `results/embedding_comparison.json` and 
 - Token-aware chunking is supported by default, with character-based chunking kept as a fallback for simplicity and robustness.
 - Simple heuristics remove reference-heavy chunks before embedding, reducing retrieval noise before vector search or optional reranking.
 - Cross-encoder reranking is optional and disabled by default because it is slower than vector-only retrieval.
+- LangChain is included as an optional retrieval integration layer, while the direct ChromaDB implementation remains the main transparent pipeline.
 - `BAAI/bge-small-en-v1.5` is the default embedding model because it performed best in the expanded retrieval benchmark.
 - ChromaDB provides persistent local vector storage without requiring an external database service.
 - Metadata is stored with each chunk: source file name, page number when available, and chunk index.
