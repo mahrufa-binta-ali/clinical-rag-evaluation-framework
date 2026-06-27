@@ -22,7 +22,7 @@ This project provides the retrieval layer needed for later RAG experiments while
 3. Text is extracted page by page when page information is available.
 4. Text is split into overlapping chunks using token-aware chunking by default.
 5. Reference-heavy and low-value chunks are filtered out.
-6. Chunks are embedded with `sentence-transformers/all-MiniLM-L6-v2`.
+6. Chunks are embedded with `BAAI/bge-small-en-v1.5` by default.
 7. Embeddings, text, and metadata are persisted in ChromaDB under `chroma_db/`.
 8. `query.py` embeds a user question and prints the top retrieved chunks with source metadata.
 
@@ -85,6 +85,8 @@ python ingest.py --data-dir data --persist-dir chroma_db
 ```
 
 `python ingest.py` rebuilds the Chroma collection from scratch by default. Old chunks are deleted before the current PDFs are embedded, which prevents stale results after deleting or renaming files. After ingestion, the script prints the unique source filenames stored in the collection.
+
+The default embedding model is `BAAI/bge-small-en-v1.5`. It was selected because it performed best in the expanded token-aware benchmark. If you change the embedding model in `config.py`, rerun `python ingest.py` so the vector store is rebuilt with embeddings from the new model.
 
 By default, ingestion uses token-aware chunking with the embedding model tokenizer. This makes chunk sizes closer to what the embedding model actually sees and avoids overly large or inconsistent chunks. Character-based chunking remains available as a simple fallback:
 
@@ -198,22 +200,16 @@ Embedding model choice matters because semantic retrieval depends on how well a 
 
 ## Results
 
-Embedding model comparison on the current 10-query benchmark:
+Embedding model comparison can be run on the expanded 25-query benchmark. The latest run showed that all three embedding models retrieved the correct source document at rank 1, while `BAAI/bge-small-en-v1.5` performed best on evidence-level retrieval, with the strongest keyword hit rate and evidence phrase recall. It is now the default embedding model.
 
-| Model | Source R@1 | Source R@3 | Source R@5 | MRR | Keyword Hit Rate | Evidence Phrase Recall@K |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `sentence-transformers/all-MiniLM-L6-v2` | 1.000 | 1.000 | 1.000 | 1.000 | 0.733 | 0.300 |
-| `sentence-transformers/multi-qa-MiniLM-L6-cos-v1` | 1.000 | 1.000 | 1.000 | 1.000 | 0.633 | 0.300 |
-| `BAAI/bge-small-en-v1.5` | 1.000 | 1.000 | 1.000 | 1.000 | 0.667 | 0.200 |
-
-All three embedding models retrieved the correct source document at rank 1 on this small benchmark. `all-MiniLM-L6-v2` performed best on evidence-level retrieval, with the highest keyword hit rate and evidence phrase recall. The phrase-level score is intentionally strict and is sensitive to chunk boundaries and PDF text normalization. Because the benchmark currently uses only two PDFs, these results should be interpreted as an initial validation experiment rather than a broad generalization claim.
+Exact comparison metrics are written to `results/embedding_comparison.json` and `results/embedding_comparison.csv` when `python compare_embeddings.py` is run. The phrase-level score is intentionally strict and is sensitive to chunk boundaries and PDF text normalization. Because the benchmark currently uses only two PDFs, these results should be interpreted as an initial validation experiment rather than a broad generalization claim.
 
 ## Design Decisions
 
 - `pypdf` is used for lightweight local PDF extraction.
 - Token-aware chunking is supported by default, with character-based chunking kept as a fallback for simplicity and robustness.
 - Simple heuristics remove reference-heavy chunks before embedding, reducing retrieval noise without adding a reranker or generation layer.
-- `sentence-transformers/all-MiniLM-L6-v2` is used because it is compact, fast, and suitable for local semantic search prototypes.
+- `BAAI/bge-small-en-v1.5` is the default embedding model because it performed best in the expanded retrieval benchmark.
 - ChromaDB provides persistent local vector storage without requiring an external database service.
 - Metadata is stored with each chunk: source file name, page number when available, and chunk index.
 - The project avoids OpenAI or hosted model APIs at this stage to keep the retrieval layer reproducible and private by default.

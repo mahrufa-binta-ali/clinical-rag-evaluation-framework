@@ -8,7 +8,8 @@ DATA_DIR = PROJECT_ROOT / "data"
 PERSIST_DIR = PROJECT_ROOT / "chroma_db"
 
 COLLECTION_NAME = "clinical_documents"
-EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
+EMBEDDING_MODEL_NAME = EMBEDDING_MODEL
 
 CHUNKING_METHOD = "token"
 CHUNK_SIZE_TOKENS = 256
