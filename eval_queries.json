@@ -8,8 +8,9 @@
       "clinical data"
     ],
     "expected_evidence_phrases": [
-      "MIMIC-IV, a publicly available database sourced from the electronic health record",
-      "Tables present in MIMIC-IV are provided on the far right of the figure under their respective module"
+      "MIMIC-IV, a publicly available database",
+      "electronic health record dataset",
+      "sourced from the electronic health record"
     ]
   },
   {
@@ -21,8 +22,9 @@
       "routine clinical care"
     ],
     "expected_evidence_phrases": [
-      "Beth Israel Deaconess Medical Center (BIDMC) and Massachusetts Institute of Technology",
-      "Data collected at BIDMC as part of routine clinical care"
+      "Beth Israel Deaconess Medical Center",
+      "BIDMC",
+      "Data collected at BIDMC"
     ]
   },
   {
@@ -31,13 +33,27 @@
     "expected_keywords": [
       "2008",
       "2019",
-      "decade of admissions"
+      "admissions"
     ],
     "expected_evidence_phrases": [
       "between 2008–2019",
       "between 2008-2019",
-      "admitted to either the emergency department or an ICU between 2008",
-      "between 2008 and 2019"
+      "between 2008 and 2019",
+      "information from 2008"
+    ]
+  },
+  {
+    "query": "What are the main creation steps for MIMIC-IV?",
+    "expected_source": "MIMIC-IV.pdf",
+    "expected_keywords": [
+      "acquisition",
+      "transformation",
+      "deidentification"
+    ],
+    "expected_evidence_phrases": [
+      "three distinct steps",
+      "acquisition, transformation, and deidentification",
+      "data acquisition"
     ]
   },
   {
@@ -49,8 +65,37 @@
       "identifiers"
     ],
     "expected_evidence_phrases": [
-      "creation of MIMIC involved three distinct steps: acquisition, transformation, and deidentification",
-      "custom algorithms to find and remove HIPAA identifiers"
+      "remove HIPAA identifiers",
+      "deidentification pipeline",
+      "dataset to be considered deidentified"
+    ]
+  },
+  {
+    "query": "What does the HIPAA Safe Harbor provision require for deidentification?",
+    "expected_source": "MIMIC-IV.pdf",
+    "expected_keywords": [
+      "HIPAA",
+      "Safe Harbor",
+      "18 identifiers"
+    ],
+    "expected_evidence_phrases": [
+      "HIPAA Safe Harbor",
+      "18 identifiers",
+      "must be removed"
+    ]
+  },
+  {
+    "query": "Who can access MIMIC-IV data?",
+    "expected_source": "MIMIC-IV.pdf",
+    "expected_keywords": [
+      "researchers",
+      "training",
+      "data use agreement"
+    ],
+    "expected_evidence_phrases": [
+      "made available to researchers",
+      "completed training",
+      "signed a data use agreement"
     ]
   },
   {
@@ -63,7 +108,64 @@
     ],
     "expected_evidence_phrases": [
       "Modules in MIMIC-IV include hosp, icu, and note",
-      "The modular structure is intended to enable future linkage of MIMIC-IV"
+      "include hosp, icu, and note",
+      "modular structure"
+    ]
+  },
+  {
+    "query": "What does the ICU module in MIMIC-IV contain?",
+    "expected_source": "MIMIC-IV.pdf",
+    "expected_keywords": [
+      "intravenous infusions",
+      "patient outputs",
+      "charted observations"
+    ],
+    "expected_evidence_phrases": [
+      "icu module comprises data",
+      "intravenous infusions",
+      "charted observations"
+    ]
+  },
+  {
+    "query": "What does the note module in MIMIC-IV contain?",
+    "expected_source": "MIMIC-IV.pdf",
+    "expected_keywords": [
+      "discharge summaries",
+      "radiology reports",
+      "free-text"
+    ],
+    "expected_evidence_phrases": [
+      "note module comprises",
+      "discharge summaries",
+      "radiology reports"
+    ]
+  },
+  {
+    "query": "Why is MIMIC-IV useful for clinical research?",
+    "expected_source": "MIMIC-IV.pdf",
+    "expected_keywords": [
+      "research",
+      "educational material",
+      "clinical research"
+    ],
+    "expected_evidence_phrases": [
+      "support a wide array of research studies",
+      "educational material",
+      "reduce barriers"
+    ]
+  },
+  {
+    "query": "Why does MIMIC-IV use a modular organization?",
+    "expected_source": "MIMIC-IV.pdf",
+    "expected_keywords": [
+      "modular",
+      "linkage",
+      "modalities"
+    ],
+    "expected_evidence_phrases": [
+      "modular organization",
+      "future linkage",
+      "varying modalities"
     ]
   },
   {
@@ -75,8 +177,23 @@
       "continuous knowledge updates"
     ],
     "expected_evidence_phrases": [
-      "Retrieval-Augmented Generation (RAG) has emerged as a promising solution by incorporating knowledge from external databases",
-      "allows for continuous knowledge updates and integration of domain-specific information"
+      "incorporating knowledge from external databases",
+      "knowledge-intensive tasks",
+      "continuous knowledge updates"
+    ]
+  },
+  {
+    "query": "What problems does RAG address for large language models?",
+    "expected_source": "retrieval_augmented_generation.pdf",
+    "expected_keywords": [
+      "hallucination",
+      "outdated knowledge",
+      "untraceable"
+    ],
+    "expected_evidence_phrases": [
+      "hallucination",
+      "outdated knowledge",
+      "untraceable reasoning"
     ]
   },
   {
@@ -88,8 +205,24 @@
       "Augmentation"
     ],
     "expected_evidence_phrases": [
-      "core stages of “Retrieval,” “Generation,” and “Augmentation”",
-      "Retrieval”, “Generation” and “Augmentation"
+      "core stages",
+      "Retrieval",
+      "Generation",
+      "Augmentation"
+    ]
+  },
+  {
+    "query": "What are the three paradigms of RAG research?",
+    "expected_source": "retrieval_augmented_generation.pdf",
+    "expected_keywords": [
+      "Naive RAG",
+      "Advanced RAG",
+      "Modular RAG"
+    ],
+    "expected_evidence_phrases": [
+      "Naive RAG, Advanced RAG, and Modular RAG",
+      "three stages",
+      "three paradigms"
     ]
   },
   {
@@ -101,8 +234,9 @@
       "generation"
     ],
     "expected_evidence_phrases": [
-      "Naive RAG follows a traditional process that includes indexing, retrieval, and generation",
-      "Naive RAG, Advanced RAG, and Modular RAG"
+      "indexing, retrieval, and generation",
+      "Retrieve-Read",
+      "traditional process"
     ]
   },
   {
@@ -114,8 +248,79 @@
       "vector database"
     ],
     "expected_evidence_phrases": [
-      "Documents are split into chunks, encoded into vectors, and stored in a vector database",
-      "Retrieve the Top k chunks most relevant to the question based on semantic similarity"
+      "split into chunks",
+      "encoded into vectors",
+      "stored in a vector database"
+    ]
+  },
+  {
+    "query": "What happens during the retrieval step in RAG?",
+    "expected_source": "retrieval_augmented_generation.pdf",
+    "expected_keywords": [
+      "query",
+      "chunks",
+      "semantic similarity"
+    ],
+    "expected_evidence_phrases": [
+      "Retrieve the Top k chunks",
+      "relevant to the question",
+      "semantic similarity"
+    ]
+  },
+  {
+    "query": "What is pre-retrieval optimization in advanced RAG?",
+    "expected_source": "retrieval_augmented_generation.pdf",
+    "expected_keywords": [
+      "pre-retrieval",
+      "indexing",
+      "query optimization"
+    ],
+    "expected_evidence_phrases": [
+      "Pre-retrieval process",
+      "optimizing the indexing structure",
+      "query optimization"
+    ]
+  },
+  {
+    "query": "What is iterative retrieval in RAG?",
+    "expected_source": "retrieval_augmented_generation.pdf",
+    "expected_keywords": [
+      "iterative retrieval",
+      "retrieval",
+      "generation"
+    ],
+    "expected_evidence_phrases": [
+      "Iterative retrieval",
+      "alternating between retrieval and generation",
+      "multiple retrieval iterations"
+    ]
+  },
+  {
+    "query": "What is recursive retrieval in RAG?",
+    "expected_source": "retrieval_augmented_generation.pdf",
+    "expected_keywords": [
+      "recursive retrieval",
+      "sub-problems",
+      "refining"
+    ],
+    "expected_evidence_phrases": [
+      "Recursive retrieval",
+      "breaking down the problem",
+      "sub-problems"
+    ]
+  },
+  {
+    "query": "What is adaptive retrieval in RAG?",
+    "expected_source": "retrieval_augmented_generation.pdf",
+    "expected_keywords": [
+      "adaptive retrieval",
+      "external knowledge",
+      "autonomously determine"
+    ],
+    "expected_evidence_phrases": [
+      "Adaptive retrieval",
+      "autonomously determine",
+      "external knowledge retrieval"
     ]
   },
   {
@@ -127,9 +332,23 @@
       "TruLens"
     ],
     "expected_evidence_phrases": [
-      "state-of-the-art automated tools like RAGAS",
+      "RAGAS",
       "ARES",
       "TruLens"
+    ]
+  },
+  {
+    "query": "What metrics are used for RAG evaluation?",
+    "expected_source": "retrieval_augmented_generation.pdf",
+    "expected_keywords": [
+      "Accuracy",
+      "Recall",
+      "MRR"
+    ],
+    "expected_evidence_phrases": [
+      "metrics applicable for evaluation",
+      "Accuracy",
+      "MRR"
     ]
   }
 ]

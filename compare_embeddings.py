@@ -11,7 +11,15 @@ from pathlib import Path
 import chromadb
 from sentence_transformers import SentenceTransformer
 
-from config import CHUNK_OVERLAP, CHUNK_SIZE, DATA_DIR
+from config import (
+    CHUNK_OVERLAP_CHARS,
+    CHUNK_OVERLAP_TOKENS,
+    CHUNK_SIZE_CHARS,
+    CHUNK_SIZE_TOKENS,
+    CHUNKING_METHOD,
+    DATA_DIR,
+    EMBEDDING_MODEL_NAME,
+)
 from evaluate import DEFAULT_EVAL_FILE, EvalResult, evaluate_query, load_eval_queries
 from ingest import (
     DocumentChunk,
@@ -19,6 +27,7 @@ from ingest import (
     extract_pdf_pages,
     filter_low_value_chunks,
     find_pdfs,
+    load_tokenizer,
 )
 
 MODELS_TO_COMPARE = [
@@ -49,13 +58,26 @@ def collect_chunks(data_dir: Path) -> list[DocumentChunk]:
     if not pdf_paths:
         raise ValueError(f"No PDF files found in {data_dir}. Add PDFs before comparing.")
 
+    chunking_method = CHUNKING_METHOD
+    tokenizer = None
+    if chunking_method == "token":
+        tokenizer = load_tokenizer(EMBEDDING_MODEL_NAME)
+        if tokenizer is None:
+            chunking_method = "char"
+
+    print(f"Chunking method for comparison: {chunking_method}")
+
     all_chunks: list[DocumentChunk] = []
     for pdf_path in pdf_paths:
         pages = extract_pdf_pages(pdf_path)
         created_chunks = build_chunks(
             pages,
-            chunk_size=CHUNK_SIZE,
-            overlap=CHUNK_OVERLAP,
+            chunking_method=chunking_method,
+            tokenizer=tokenizer,
+            token_chunk_size=CHUNK_SIZE_TOKENS,
+            token_overlap=CHUNK_OVERLAP_TOKENS,
+            char_chunk_size=CHUNK_SIZE_CHARS,
+            char_overlap=CHUNK_OVERLAP_CHARS,
         )
         kept_chunks, skipped_count = filter_low_value_chunks(created_chunks)
         all_chunks.extend(kept_chunks)

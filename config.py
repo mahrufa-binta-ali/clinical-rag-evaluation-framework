@@ -10,6 +10,13 @@ PERSIST_DIR = PROJECT_ROOT / "chroma_db"
 COLLECTION_NAME = "clinical_documents"
 EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
-CHUNK_SIZE = 1_000
-CHUNK_OVERLAP = 200
+CHUNKING_METHOD = "token"
+CHUNK_SIZE_TOKENS = 256
+CHUNK_OVERLAP_TOKENS = 50
+CHUNK_SIZE_CHARS = 900
+CHUNK_OVERLAP_CHARS = 150
+
+# Backward-compatible aliases for helper scripts that import the old names.
+CHUNK_SIZE = CHUNK_SIZE_CHARS
+CHUNK_OVERLAP = CHUNK_OVERLAP_CHARS
 DEFAULT_TOP_K = 3

@@ -13,10 +13,14 @@ from typing import Iterable
 import chromadb
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
+from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
 from config import (
-    CHUNK_OVERLAP,
-    CHUNK_SIZE,
+    CHUNK_OVERLAP_CHARS,
+    CHUNK_OVERLAP_TOKENS,
+    CHUNK_SIZE_CHARS,
+    CHUNK_SIZE_TOKENS,
+    CHUNKING_METHOD,
     COLLECTION_NAME,
     DATA_DIR,
     EMBEDDING_MODEL_NAME,
@@ -103,6 +107,67 @@ def chunk_text(text: str, chunk_size: int, overlap: int) -> list[str]:
     return chunks
 
 
+def chunk_text_by_tokens(
+    text: str,
+    tokenizer: PreTrainedTokenizerBase,
+    chunk_size: int,
+    overlap: int,
+) -> list[str]:
+    """Split text into overlapping token chunks using the embedding tokenizer."""
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be greater than zero.")
+    if overlap < 0:
+        raise ValueError("overlap cannot be negative.")
+    if overlap >= chunk_size:
+        raise ValueError("overlap must be smaller than chunk_size.")
+
+    token_ids = tokenizer.encode(text, add_special_tokens=False, verbose=False)
+    chunks: list[str] = []
+    start = 0
+
+    while start < len(token_ids):
+        end = start + chunk_size
+        chunk = tokenizer.decode(
+            token_ids[start:end],
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=True,
+        ).strip()
+        if chunk:
+            chunks.append(normalize_text(chunk))
+        start += chunk_size - overlap
+
+    return chunks
+
+
+def load_tokenizer(model_name: str) -> PreTrainedTokenizerBase | None:
+    try:
+        return AutoTokenizer.from_pretrained(model_name)
+    except Exception as exc:
+        print(f"Warning: could not load tokenizer for token chunking: {exc}")
+        print("Falling back to character-based chunking.")
+        return None
+
+
+def chunk_page_text(
+    text: str,
+    chunking_method: str,
+    tokenizer: PreTrainedTokenizerBase | None,
+    token_chunk_size: int,
+    token_overlap: int,
+    char_chunk_size: int,
+    char_overlap: int,
+) -> list[str]:
+    if chunking_method == "token" and tokenizer is not None:
+        return chunk_text_by_tokens(
+            text,
+            tokenizer=tokenizer,
+            chunk_size=token_chunk_size,
+            overlap=token_overlap,
+        )
+
+    return chunk_text(text, chunk_size=char_chunk_size, overlap=char_overlap)
+
+
 def is_low_value_chunk(text: str) -> bool:
     """Identify reference-heavy chunks that usually hurt retrieval quality."""
     normalized = " ".join(text.split())
@@ -165,15 +230,33 @@ def make_chunk_id(source_file: str, page_number: int, chunk_index: int, text: st
 
 def build_chunks(
     pages: Iterable[PageText],
-    chunk_size: int,
-    overlap: int,
+    chunking_method: str = CHUNKING_METHOD,
+    tokenizer: PreTrainedTokenizerBase | None = None,
+    token_chunk_size: int = CHUNK_SIZE_TOKENS,
+    token_overlap: int = CHUNK_OVERLAP_TOKENS,
+    char_chunk_size: int = CHUNK_SIZE_CHARS,
+    char_overlap: int = CHUNK_OVERLAP_CHARS,
+    chunk_size: int | None = None,
+    overlap: int | None = None,
 ) -> list[DocumentChunk]:
     """Create metadata-rich chunks from extracted page text."""
     document_chunks: list[DocumentChunk] = []
+    if chunk_size is not None:
+        char_chunk_size = chunk_size
+    if overlap is not None:
+        char_overlap = overlap
 
     for page in pages:
         for chunk_index, chunk in enumerate(
-            chunk_text(page.text, chunk_size=chunk_size, overlap=overlap)
+            chunk_page_text(
+                page.text,
+                chunking_method=chunking_method,
+                tokenizer=tokenizer,
+                token_chunk_size=token_chunk_size,
+                token_overlap=token_overlap,
+                char_chunk_size=char_chunk_size,
+                char_overlap=char_overlap,
+            )
         ):
             document_chunks.append(
                 DocumentChunk(
@@ -309,8 +392,11 @@ def print_indexed_sources(collection: chromadb.Collection) -> None:
 def ingest_documents(
     data_dir: Path,
     persist_dir: Path,
-    chunk_size: int,
-    overlap: int,
+    chunking_method: str,
+    token_chunk_size: int,
+    token_overlap: int,
+    char_chunk_size: int,
+    char_overlap: int,
 ) -> int:
     """Extract, chunk, embed, and persist documents."""
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -327,6 +413,27 @@ def ingest_documents(
         print_indexed_sources(collection)
         return 0
 
+    normalized_chunking_method = chunking_method.lower()
+    if normalized_chunking_method not in {"token", "char"}:
+        raise ValueError("--chunking-method must be either 'token' or 'char'.")
+
+    tokenizer = None
+    if normalized_chunking_method == "token":
+        tokenizer = load_tokenizer(EMBEDDING_MODEL_NAME)
+        if tokenizer is None:
+            normalized_chunking_method = "char"
+
+    if normalized_chunking_method == "token":
+        print(
+            "Chunking method: token "
+            f"({token_chunk_size} tokens, {token_overlap} token overlap)."
+        )
+    else:
+        print(
+            "Chunking method: char "
+            f"({char_chunk_size} characters, {char_overlap} character overlap)."
+        )
+
     all_chunks: list[DocumentChunk] = []
     total_created_chunks = 0
     total_skipped_low_value = 0
@@ -337,7 +444,15 @@ def ingest_documents(
             print(f"Warning: no extractable text found in {pdf_path.name}.")
             continue
 
-        created_chunks = build_chunks(pages, chunk_size=chunk_size, overlap=overlap)
+        created_chunks = build_chunks(
+            pages,
+            chunking_method=normalized_chunking_method,
+            tokenizer=tokenizer,
+            token_chunk_size=token_chunk_size,
+            token_overlap=token_overlap,
+            char_chunk_size=char_chunk_size,
+            char_overlap=char_overlap,
+        )
         if not created_chunks:
             print(f"Warning: no chunks were created from {pdf_path.name}.")
             continue
@@ -405,8 +520,28 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Ingest PDFs into ChromaDB.")
     parser.add_argument("--data-dir", type=Path, default=DATA_DIR)
     parser.add_argument("--persist-dir", type=Path, default=PERSIST_DIR)
-    parser.add_argument("--chunk-size", type=int, default=CHUNK_SIZE)
-    parser.add_argument("--overlap", type=int, default=CHUNK_OVERLAP)
+    parser.add_argument(
+        "--chunking-method",
+        choices=["token", "char"],
+        default=CHUNKING_METHOD,
+        help="Chunk by embedding-model tokens or by characters.",
+    )
+    parser.add_argument("--chunk-size-tokens", type=int, default=CHUNK_SIZE_TOKENS)
+    parser.add_argument("--overlap-tokens", type=int, default=CHUNK_OVERLAP_TOKENS)
+    parser.add_argument("--chunk-size-chars", type=int, default=CHUNK_SIZE_CHARS)
+    parser.add_argument("--overlap-chars", type=int, default=CHUNK_OVERLAP_CHARS)
+    parser.add_argument(
+        "--chunk-size",
+        type=int,
+        default=None,
+        help="Legacy alias for --chunk-size-chars.",
+    )
+    parser.add_argument(
+        "--overlap",
+        type=int,
+        default=None,
+        help="Legacy alias for --overlap-chars.",
+    )
     return parser.parse_args()
 
 
@@ -415,8 +550,11 @@ def main() -> None:
     ingest_documents(
         data_dir=args.data_dir,
         persist_dir=args.persist_dir,
-        chunk_size=args.chunk_size,
-        overlap=args.overlap,
+        chunking_method=args.chunking_method,
+        token_chunk_size=args.chunk_size_tokens,
+        token_overlap=args.overlap_tokens,
+        char_chunk_size=args.chunk_size if args.chunk_size is not None else args.chunk_size_chars,
+        char_overlap=args.overlap if args.overlap is not None else args.overlap_chars,
     )
 
 
