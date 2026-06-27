@@ -15,7 +15,7 @@ from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
-from config import (
+from clinical_rag_eval.config import (
     CHUNK_OVERLAP_CHARS,
     CHUNK_OVERLAP_TOKENS,
     CHUNK_SIZE_CHARS,

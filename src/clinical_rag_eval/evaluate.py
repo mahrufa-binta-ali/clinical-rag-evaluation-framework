@@ -12,10 +12,15 @@ from typing import Any
 import chromadb
 from sentence_transformers import SentenceTransformer
 
-from config import COLLECTION_NAME, EMBEDDING_MODEL_NAME, PERSIST_DIR
-from rerank import load_reranker, rerank_results
+from clinical_rag_eval.config import (
+    COLLECTION_NAME,
+    EMBEDDING_MODEL_NAME,
+    PERSIST_DIR,
+    PROJECT_ROOT,
+)
+from clinical_rag_eval.rerank import load_reranker, rerank_results
 
-DEFAULT_EVAL_FILE = Path(__file__).resolve().parent / "eval_queries.json"
+DEFAULT_EVAL_FILE = PROJECT_ROOT / "eval_queries.json"
 DEFAULT_TOP_K = 5
 DEFAULT_CANDIDATE_K = 10
 
@@ -78,7 +83,7 @@ def load_collection(persist_dir: Path) -> chromadb.Collection:
     ]
     if COLLECTION_NAME not in collection_names:
         raise ValueError(
-            f"Collection '{COLLECTION_NAME}' was not found. Run `python ingest.py` first."
+            f"Collection '{COLLECTION_NAME}' was not found. Run `python -m clinical_rag_eval.ingest` first."
         )
     return client.get_collection(COLLECTION_NAME)
 
@@ -279,7 +284,9 @@ def run_evaluation(
     collection = load_collection(persist_dir)
     document_count = collection.count()
     if document_count == 0:
-        raise ValueError("The Chroma collection is empty. Run `python ingest.py` first.")
+        raise ValueError(
+            "The Chroma collection is empty. Run `python -m clinical_rag_eval.ingest` first."
+        )
 
     effective_top_k = min(top_k, document_count)
     effective_candidate_k = min(max(candidate_k, top_k), document_count)

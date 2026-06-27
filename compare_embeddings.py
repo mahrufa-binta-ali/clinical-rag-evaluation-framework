@@ -11,7 +11,7 @@ from pathlib import Path
 import chromadb
 from sentence_transformers import SentenceTransformer
 
-from config import (
+from clinical_rag_eval.config import (
     CHUNK_OVERLAP_CHARS,
     CHUNK_OVERLAP_TOKENS,
     CHUNK_SIZE_CHARS,
@@ -20,8 +20,13 @@ from config import (
     DATA_DIR,
     EMBEDDING_MODEL_NAME,
 )
-from evaluate import DEFAULT_EVAL_FILE, EvalResult, evaluate_query, load_eval_queries
-from ingest import (
+from clinical_rag_eval.evaluate import (
+    DEFAULT_EVAL_FILE,
+    EvalResult,
+    evaluate_query,
+    load_eval_queries,
+)
+from clinical_rag_eval.ingest import (
     DocumentChunk,
     build_chunks,
     extract_pdf_pages,

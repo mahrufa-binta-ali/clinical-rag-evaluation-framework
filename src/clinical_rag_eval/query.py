@@ -10,8 +10,13 @@ from typing import Any
 import chromadb
 from sentence_transformers import SentenceTransformer
 
-from config import COLLECTION_NAME, DEFAULT_TOP_K, EMBEDDING_MODEL_NAME, PERSIST_DIR
-from rerank import load_reranker, rerank_results
+from clinical_rag_eval.config import (
+    COLLECTION_NAME,
+    DEFAULT_TOP_K,
+    EMBEDDING_MODEL_NAME,
+    PERSIST_DIR,
+)
+from clinical_rag_eval.rerank import load_reranker, rerank_results
 
 DEFAULT_PREVIEW_CHARS = 900
 DEFAULT_CANDIDATE_K = 10
@@ -101,7 +106,7 @@ def ensure_collection_has_documents(collection: chromadb.Collection) -> int:
     document_count = collection.count()
     if document_count == 0:
         raise QuerySetupError(
-            "the collection exists but contains no documents. Run `python ingest.py` "
+            "the collection exists but contains no documents. Run `python -m clinical_rag_eval.ingest` "
             "after adding PDFs to the data folder."
         )
     return document_count
@@ -514,7 +519,7 @@ def main() -> None:
             )
     except QuerySetupError as exc:
         print(f"Vector store is not ready: {exc}")
-        print("Run `python ingest.py` after adding PDFs to the data folder.")
+        print("Run `python -m clinical_rag_eval.ingest` after adding PDFs to the data folder.")
 
 
 if __name__ == "__main__":

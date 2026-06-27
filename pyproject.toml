@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clinical-rag-evaluation-framework"
+version = "0.1.0"
+description = "A local clinical RAG retrieval and evaluation framework."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pypdf>=4.2.0",
+    "sentence-transformers>=3.0.0",
+    "chromadb>=0.5.0",
+    "transformers>=4.40.0",
+    "torch>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

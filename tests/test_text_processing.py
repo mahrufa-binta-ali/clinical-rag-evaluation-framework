@@ -1,5 +1,5 @@
-from evaluate import find_evidence_phrase_hits, find_keyword_hits
-from ingest import chunk_text, is_low_value_chunk, normalize_text
+from clinical_rag_eval.evaluate import find_evidence_phrase_hits, find_keyword_hits
+from clinical_rag_eval.ingest import chunk_text, is_low_value_chunk, normalize_text
 
 
 def test_normalize_text_collapses_whitespace() -> None:

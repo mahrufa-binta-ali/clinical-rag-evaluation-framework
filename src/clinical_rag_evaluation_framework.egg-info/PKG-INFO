@@ -1,3 +1,17 @@
+Metadata-Version: 2.4
+Name: clinical-rag-evaluation-framework
+Version: 0.1.0
+Summary: A local clinical RAG retrieval and evaluation framework.
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: pypdf>=4.2.0
+Requires-Dist: sentence-transformers>=3.0.0
+Requires-Dist: chromadb>=0.5.0
+Requires-Dist: transformers>=4.40.0
+Requires-Dist: torch>=2.0.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+
 # clinical-rag-evaluation-framework
 
 A clean first-stage retrieval pipeline for healthcare AI research. The project ingests public or synthetic clinical documents, extracts text from PDFs, chunks the text with overlap, embeds the chunks with a local sentence-transformers model, stores vectors in ChromaDB, and retrieves the most relevant passages from the terminal.
