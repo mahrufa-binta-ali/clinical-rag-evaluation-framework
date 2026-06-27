@@ -178,6 +178,18 @@ results/embedding_comparison.csv
 
 Embedding model choice matters because semantic retrieval depends on how well a model maps questions and document chunks into the same vector space. A model that performs well for general sentence similarity may not retrieve the best evidence for question answering, clinical text, or technical research documents. Comparing models on the same benchmark helps make retrieval design decisions empirical instead of relying on defaults.
 
+## Results
+
+Embedding model comparison on the current 10-query benchmark:
+
+| Model | Source R@1 | Source R@3 | Source R@5 | MRR | Keyword Hit Rate | Evidence Phrase Recall@K |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sentence-transformers/all-MiniLM-L6-v2` | 1.000 | 1.000 | 1.000 | 1.000 | 0.867 | 0.900 |
+| `sentence-transformers/multi-qa-MiniLM-L6-cos-v1` | 1.000 | 1.000 | 1.000 | 1.000 | 0.633 | 0.700 |
+| `BAAI/bge-small-en-v1.5` | 1.000 | 1.000 | 1.000 | 1.000 | 0.733 | 0.600 |
+
+All three embedding models retrieved the correct source document at rank 1 on this small benchmark. `all-MiniLM-L6-v2` performed best on evidence-level retrieval, with the highest keyword hit rate and evidence phrase recall. Because the benchmark currently uses only two PDFs, these results should be interpreted as an initial validation experiment rather than a broad generalization claim.
+
 ## Design Decisions
 
 - `pypdf` is used for lightweight local PDF extraction.
