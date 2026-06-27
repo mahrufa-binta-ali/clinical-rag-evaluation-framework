@@ -41,8 +41,8 @@ clinical-rag-evaluation-framework/
 |-- requirements.txt
 |-- README.md
 |-- .gitignore
-|-- data/
-`-- chroma_db/
+|-- data/          # local only, ignored except .gitkeep
+`-- chroma_db/     # generated locally after ingestion
 ```
 
 `data/` and `chroma_db/` are created automatically when needed. They are ignored by Git so the repository does not accidentally include documents or local vector indexes.
