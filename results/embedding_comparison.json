@@ -1,0 +1,32 @@
+[
+  {
+    "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "indexed_chunks": 136,
+    "source_recall_at_1": 1.0,
+    "source_recall_at_3": 1.0,
+    "source_recall_at_5": 1.0,
+    "mrr": 1.0,
+    "average_keyword_hit_rate": 0.8666666666666666,
+    "evidence_phrase_recall_at_k": 0.9
+  },
+  {
+    "model": "sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
+    "indexed_chunks": 136,
+    "source_recall_at_1": 1.0,
+    "source_recall_at_3": 1.0,
+    "source_recall_at_5": 1.0,
+    "mrr": 1.0,
+    "average_keyword_hit_rate": 0.6333333333333333,
+    "evidence_phrase_recall_at_k": 0.7
+  },
+  {
+    "model": "BAAI/bge-small-en-v1.5",
+    "indexed_chunks": 136,
+    "source_recall_at_1": 1.0,
+    "source_recall_at_3": 1.0,
+    "source_recall_at_5": 1.0,
+    "mrr": 1.0,
+    "average_keyword_hit_rate": 0.7333333333333333,
+    "evidence_phrase_recall_at_k": 0.6
+  }
+]

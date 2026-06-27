@@ -34,7 +34,9 @@ clinical-rag-evaluation-framework/
 |-- ingest.py
 |-- query.py
 |-- evaluate.py
+|-- compare_embeddings.py
 |-- eval_queries.json
+|-- results/
 |-- requirements.txt
 |-- README.md
 |-- .gitignore
@@ -146,6 +148,35 @@ Metrics:
 - Evidence Phrase Recall@K measures whether any expected evidence phrase appears in the top K retrieved chunks after case-insensitive whitespace normalization.
 
 Retrieval evaluation matters for healthcare AI and RAG systems because the generation layer, if added later, can only be as trustworthy as the evidence it receives. Source-level evaluation checks whether the system finds the right document, but it can be easy when there are only a few documents. Evidence-level evaluation is stricter because it checks whether the retrieved chunks contain specific useful passages, not just the correct PDF filename.
+
+## Compare Embedding Models
+
+Run the same retrieval benchmark across multiple local sentence embedding models:
+
+```bash
+python compare_embeddings.py
+```
+
+The script compares:
+
+- `sentence-transformers/all-MiniLM-L6-v2`
+- `sentence-transformers/multi-qa-MiniLM-L6-cos-v1`
+- `BAAI/bge-small-en-v1.5`
+
+Set the retrieval depth used for evaluation:
+
+```bash
+python compare_embeddings.py --top-k 5
+```
+
+For each model, the script builds a temporary Chroma vector store from the same PDFs in `data/`, runs `eval_queries.json`, prints a comparison table, and saves results to:
+
+```text
+results/embedding_comparison.json
+results/embedding_comparison.csv
+```
+
+Embedding model choice matters because semantic retrieval depends on how well a model maps questions and document chunks into the same vector space. A model that performs well for general sentence similarity may not retrieve the best evidence for question answering, clinical text, or technical research documents. Comparing models on the same benchmark helps make retrieval design decisions empirical instead of relying on defaults.
 
 ## Design Decisions
 
