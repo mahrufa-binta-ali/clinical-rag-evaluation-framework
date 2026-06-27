@@ -11,8 +11,10 @@ import chromadb
 from sentence_transformers import SentenceTransformer
 
 from config import COLLECTION_NAME, DEFAULT_TOP_K, EMBEDDING_MODEL_NAME, PERSIST_DIR
+from rerank import load_reranker, rerank_results
 
 DEFAULT_PREVIEW_CHARS = 900
+DEFAULT_CANDIDATE_K = 10
 SUMMARY_SENTENCE_COUNT = 3
 MIN_SUMMARY_SENTENCES = 2
 MAX_SUMMARY_SENTENCE_CHARS = 280
@@ -323,16 +325,23 @@ def print_evidence_summary(documents: list[str], question: str) -> None:
     print()
 
 
-def print_results(question: str, results: dict[str, Any], preview_chars: int) -> None:
+def print_results(
+    question: str,
+    results: dict[str, Any],
+    preview_chars: int,
+    rerank_enabled: bool,
+) -> None:
     documents = results.get("documents", [[]])[0]
     metadatas = results.get("metadatas", [[]])[0]
     distances = results.get("distances", [[]])[0]
+    rerank_scores = results.get("rerank_scores", [[]])[0]
 
     print()
     print("=" * 80)
     print("Semantic Retrieval Results")
     print("=" * 80)
     print(f"Question: {question}")
+    print(f"Reranking: {'enabled' if rerank_enabled else 'disabled'}")
     print(f"Retrieved chunks: {len(documents)}")
     print()
 
@@ -355,6 +364,8 @@ def print_results(question: str, results: dict[str, Any], preview_chars: int) ->
         print(f"[{rank}]")
         print(f"Source: {source_file} | Page: {page_number} | Chunk: {chunk_index}")
         print(f"Distance: {distance:.4f} | Similarity: {similarity:.4f}")
+        if rerank_enabled and rank <= len(rerank_scores):
+            print(f"Rerank score: {rerank_scores[rank - 1]:.4f}")
         print(preview_text(document, max_chars=preview_chars))
         print("-" * 80)
 
@@ -364,6 +375,8 @@ def run_single_query(
     persist_dir: Path,
     top_k: int,
     preview_chars: int,
+    rerank_enabled: bool,
+    candidate_k: int,
 ) -> None:
     question = question.strip()
     if not question:
@@ -373,17 +386,52 @@ def run_single_query(
     collection = load_collection(persist_dir)
     document_count = ensure_collection_has_documents(collection)
     model = SentenceTransformer(EMBEDDING_MODEL_NAME)
-    results = retrieve(question, collection, model, min(top_k, document_count))
-    print_results(question, results, preview_chars=preview_chars)
+    if rerank_enabled:
+        effective_candidate_k = min(max(candidate_k, top_k), document_count)
+        print(
+            f"Reranking enabled: retrieving {effective_candidate_k} candidates "
+            f"and displaying top {top_k}."
+        )
+        candidate_results = retrieve(
+            question,
+            collection,
+            model,
+            effective_candidate_k,
+        )
+        reranker = load_reranker()
+        results = rerank_results(
+            question,
+            candidate_results,
+            reranker=reranker,
+            top_k=min(top_k, document_count),
+        )
+    else:
+        print("Reranking disabled: using vector search ranking.")
+        results = retrieve(question, collection, model, min(top_k, document_count))
+
+    print_results(
+        question,
+        results,
+        preview_chars=preview_chars,
+        rerank_enabled=rerank_enabled,
+    )
 
 
-def run_interactive(persist_dir: Path, top_k: int, preview_chars: int) -> None:
+def run_interactive(
+    persist_dir: Path,
+    top_k: int,
+    preview_chars: int,
+    rerank_enabled: bool,
+    candidate_k: int,
+) -> None:
     collection = load_collection(persist_dir)
     document_count = ensure_collection_has_documents(collection)
     model = SentenceTransformer(EMBEDDING_MODEL_NAME)
     effective_top_k = min(top_k, document_count)
+    reranker = load_reranker() if rerank_enabled else None
 
     print("Semantic retrieval ready. Type a question, or 'exit' to quit.")
+    print(f"Reranking: {'enabled' if rerank_enabled else 'disabled'}")
     while True:
         question = input("\nQuestion: ").strip()
         if question.lower() in {"exit", "quit"}:
@@ -392,8 +440,29 @@ def run_interactive(persist_dir: Path, top_k: int, preview_chars: int) -> None:
             print("Please enter a non-empty question.")
             continue
 
-        results = retrieve(question, collection, model, effective_top_k)
-        print_results(question, results, preview_chars=preview_chars)
+        if rerank_enabled and reranker is not None:
+            effective_candidate_k = min(max(candidate_k, top_k), document_count)
+            candidate_results = retrieve(
+                question,
+                collection,
+                model,
+                effective_candidate_k,
+            )
+            results = rerank_results(
+                question,
+                candidate_results,
+                reranker=reranker,
+                top_k=effective_top_k,
+            )
+        else:
+            results = retrieve(question, collection, model, effective_top_k)
+
+        print_results(
+            question,
+            results,
+            preview_chars=preview_chars,
+            rerank_enabled=rerank_enabled,
+        )
 
 
 def parse_args() -> argparse.Namespace:
@@ -401,6 +470,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("question", nargs="?", help="Question to retrieve evidence for.")
     parser.add_argument("--persist-dir", type=Path, default=PERSIST_DIR)
     parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K)
+    parser.add_argument("--candidate-k", type=int, default=DEFAULT_CANDIDATE_K)
+    parser.add_argument(
+        "--rerank",
+        action="store_true",
+        help="Rerank vector-search candidates with a cross-encoder.",
+    )
     parser.add_argument(
         "--preview-chars",
         type=int,
@@ -414,6 +489,8 @@ def main() -> None:
     args = parse_args()
     if args.top_k <= 0:
         raise ValueError("--top-k must be greater than zero.")
+    if args.candidate_k <= 0:
+        raise ValueError("--candidate-k must be greater than zero.")
     if args.preview_chars <= 0:
         raise ValueError("--preview-chars must be greater than zero.")
 
@@ -424,12 +501,16 @@ def main() -> None:
                 persist_dir=args.persist_dir,
                 top_k=args.top_k,
                 preview_chars=args.preview_chars,
+                rerank_enabled=args.rerank,
+                candidate_k=args.candidate_k,
             )
         else:
             run_interactive(
                 persist_dir=args.persist_dir,
                 top_k=args.top_k,
                 preview_chars=args.preview_chars,
+                rerank_enabled=args.rerank,
+                candidate_k=args.candidate_k,
             )
     except QuerySetupError as exc:
         print(f"Vector store is not ready: {exc}")

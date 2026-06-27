@@ -33,6 +33,7 @@ clinical-rag-evaluation-framework/
 |-- config.py
 |-- ingest.py
 |-- query.py
+|-- rerank.py
 |-- evaluate.py
 |-- compare_embeddings.py
 |-- eval_queries.json
@@ -130,10 +131,22 @@ Set the number of results:
 python query.py "How should renal function be monitored?" --top-k 5
 ```
 
+Use optional cross-encoder reranking:
+
+```bash
+python query.py "How should renal function be monitored?" --top-k 5 --rerank --candidate-k 10
+```
+
 You can also set `--top-k` for interactive mode:
 
 ```bash
 python query.py --top-k 5
+```
+
+Use reranking in interactive mode:
+
+```bash
+python query.py --top-k 5 --rerank --candidate-k 10
 ```
 
 Control chunk preview length:
@@ -143,6 +156,8 @@ python query.py "What is retrieval augmented generation?" --preview-chars 1200
 ```
 
 Each result includes the source filename, page number, chunk index, vector distance, approximate similarity, and a cleaned text preview. The Evidence Summary uses rule-based extractive sentence selection from retrieved chunks; it is not an LLM-generated answer and does not invent new information.
+
+By default, retrieval is vector-only: ChromaDB returns the nearest chunks from the embedding space. With `--rerank`, the system first retrieves `--candidate-k` vector candidates, then uses `cross-encoder/ms-marco-MiniLM-L-6-v2` to score each query-chunk pair and reorder the final top-k results. Reranking can improve evidence-level retrieval, but it is slower because every candidate is scored by a cross-encoder.
 
 ## Run Retrieval Evaluation
 
@@ -156,6 +171,18 @@ Set the number of retrieved chunks used for each evaluation query:
 
 ```bash
 python evaluate.py --top-k 5
+```
+
+Evaluate with cross-encoder reranking:
+
+```bash
+python evaluate.py --rerank
+```
+
+You can also control candidate depth:
+
+```bash
+python evaluate.py --rerank --candidate-k 10
 ```
 
 The evaluation file, `eval_queries.json`, contains 25 manually written validation queries with expected source documents, expected evidence keywords, and expected evidence phrases for questions about `MIMIC-IV.pdf` and `retrieval_augmented_generation.pdf`.
@@ -208,7 +235,8 @@ Exact comparison metrics are written to `results/embedding_comparison.json` and 
 
 - `pypdf` is used for lightweight local PDF extraction.
 - Token-aware chunking is supported by default, with character-based chunking kept as a fallback for simplicity and robustness.
-- Simple heuristics remove reference-heavy chunks before embedding, reducing retrieval noise without adding a reranker or generation layer.
+- Simple heuristics remove reference-heavy chunks before embedding, reducing retrieval noise before vector search or optional reranking.
+- Cross-encoder reranking is optional and disabled by default because it is slower than vector-only retrieval.
 - `BAAI/bge-small-en-v1.5` is the default embedding model because it performed best in the expanded retrieval benchmark.
 - ChromaDB provides persistent local vector storage without requiring an external database service.
 - Metadata is stored with each chunk: source file name, page number when available, and chunk index.
@@ -219,7 +247,7 @@ Exact comparison metrics are written to `results/embedding_comparison.json` and 
 - PDF extraction quality depends on the source PDF. Scanned PDFs need OCR, which is not included.
 - Token-aware chunking depends on loading the embedding model tokenizer; if that fails, the pipeline falls back to character-based chunking.
 - The 25-query evaluation set is intended as a small validation benchmark, not a broad benchmark.
-- No reranking, hybrid BM25/vector retrieval, or query rewriting is included.
+- Cross-encoder reranking is available, but hybrid BM25/vector retrieval and query rewriting are not included.
 - The terminal interface is intended for research and debugging, not production use.
 - Retrieved passages are not medical advice and should not be treated as clinical guidance.
 
@@ -233,7 +261,7 @@ Exact comparison metrics are written to `results/embedding_comparison.json` and 
 - RAG answer generation with citation-aware responses.
 - OCR support for scanned PDFs.
 - More advanced chunking strategies, such as section-aware or sentence-aware chunking.
-- Hybrid retrieval and reranking experiments.
+- Hybrid retrieval experiments.
 
 ## Research Portfolio Notes
 

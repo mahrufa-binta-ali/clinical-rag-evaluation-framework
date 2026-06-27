@@ -13,9 +13,11 @@ import chromadb
 from sentence_transformers import SentenceTransformer
 
 from config import COLLECTION_NAME, EMBEDDING_MODEL_NAME, PERSIST_DIR
+from rerank import load_reranker, rerank_results
 
 DEFAULT_EVAL_FILE = Path(__file__).resolve().parent / "eval_queries.json"
 DEFAULT_TOP_K = 5
+DEFAULT_CANDIDATE_K = 10
 
 
 @dataclass(frozen=True)
@@ -147,8 +149,28 @@ def evaluate_query(
     collection: chromadb.Collection,
     model: SentenceTransformer,
     top_k: int,
+    rerank_enabled: bool = False,
+    candidate_k: int | None = None,
+    reranker: Any | None = None,
 ) -> EvalResult:
-    results = retrieve(eval_query.query, collection, model, top_k)
+    if rerank_enabled:
+        if reranker is None:
+            raise ValueError("reranker is required when rerank_enabled is True.")
+        candidate_results = retrieve(
+            eval_query.query,
+            collection,
+            model,
+            candidate_k or top_k,
+        )
+        results = rerank_results(
+            eval_query.query,
+            candidate_results,
+            reranker=reranker,
+            top_k=top_k,
+        )
+    else:
+        results = retrieve(eval_query.query, collection, model, top_k)
+
     documents = results.get("documents", [[]])[0]
     metadatas = results.get("metadatas", [[]])[0]
     top_sources = [
@@ -246,7 +268,13 @@ def print_aggregate_report(results: list[EvalResult]) -> None:
     print(f"Evidence Phrase Recall@K: {evidence_phrase_recall:.3f}")
 
 
-def run_evaluation(eval_file: Path, persist_dir: Path, top_k: int) -> None:
+def run_evaluation(
+    eval_file: Path,
+    persist_dir: Path,
+    top_k: int,
+    rerank_enabled: bool,
+    candidate_k: int,
+) -> None:
     eval_queries = load_eval_queries(eval_file)
     collection = load_collection(persist_dir)
     document_count = collection.count()
@@ -254,7 +282,17 @@ def run_evaluation(eval_file: Path, persist_dir: Path, top_k: int) -> None:
         raise ValueError("The Chroma collection is empty. Run `python ingest.py` first.")
 
     effective_top_k = min(top_k, document_count)
+    effective_candidate_k = min(max(candidate_k, top_k), document_count)
     model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+    reranker = load_reranker() if rerank_enabled else None
+
+    if rerank_enabled:
+        print(
+            f"Reranking enabled: retrieving {effective_candidate_k} candidates "
+            f"and evaluating top {effective_top_k}."
+        )
+    else:
+        print("Reranking disabled: evaluating vector search ranking.")
 
     results: list[EvalResult] = []
     for eval_query in eval_queries:
@@ -263,6 +301,9 @@ def run_evaluation(eval_file: Path, persist_dir: Path, top_k: int) -> None:
             collection=collection,
             model=model,
             top_k=effective_top_k,
+            rerank_enabled=rerank_enabled,
+            candidate_k=effective_candidate_k,
+            reranker=reranker,
         )
         results.append(result)
         print_query_report(result)
@@ -273,6 +314,12 @@ def run_evaluation(eval_file: Path, persist_dir: Path, top_k: int) -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate semantic retrieval quality.")
     parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K)
+    parser.add_argument("--candidate-k", type=int, default=DEFAULT_CANDIDATE_K)
+    parser.add_argument(
+        "--rerank",
+        action="store_true",
+        help="Rerank vector-search candidates with a cross-encoder before scoring.",
+    )
     parser.add_argument("--eval-file", type=Path, default=DEFAULT_EVAL_FILE)
     parser.add_argument("--persist-dir", type=Path, default=PERSIST_DIR)
     return parser.parse_args()
@@ -282,11 +329,15 @@ def main() -> None:
     args = parse_args()
     if args.top_k <= 0:
         raise ValueError("--top-k must be greater than zero.")
+    if args.candidate_k <= 0:
+        raise ValueError("--candidate-k must be greater than zero.")
 
     run_evaluation(
         eval_file=args.eval_file,
         persist_dir=args.persist_dir,
         top_k=args.top_k,
+        rerank_enabled=args.rerank,
+        candidate_k=args.candidate_k,
     )
 
 
