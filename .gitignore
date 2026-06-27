@@ -5,6 +5,7 @@ __pycache__/
 data/*
 !data/.gitkeep
 chroma_db/
+logs/*.log
 
 .env
 .env.*

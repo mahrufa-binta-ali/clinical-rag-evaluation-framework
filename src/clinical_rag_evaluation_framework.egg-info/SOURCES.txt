@@ -1,6 +1,7 @@
 README.md
 pyproject.toml
 src/clinical_rag_eval/__init__.py
+src/clinical_rag_eval/api.py
 src/clinical_rag_eval/config.py
 src/clinical_rag_eval/evaluate.py
 src/clinical_rag_eval/ingest.py
@@ -12,4 +13,5 @@ src/clinical_rag_evaluation_framework.egg-info/SOURCES.txt
 src/clinical_rag_evaluation_framework.egg-info/dependency_links.txt
 src/clinical_rag_evaluation_framework.egg-info/requires.txt
 src/clinical_rag_evaluation_framework.egg-info/top_level.txt
+tests/test_api.py
 tests/test_text_processing.py

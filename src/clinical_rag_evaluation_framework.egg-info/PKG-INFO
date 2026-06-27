@@ -7,12 +7,15 @@ Description-Content-Type: text/markdown
 Requires-Dist: pypdf>=4.2.0
 Requires-Dist: sentence-transformers>=3.0.0
 Requires-Dist: chromadb>=0.5.0
+Requires-Dist: fastapi
 Requires-Dist: langchain
 Requires-Dist: langchain-chroma
 Requires-Dist: langchain-community
 Requires-Dist: langchain-huggingface
+Requires-Dist: python-multipart
 Requires-Dist: transformers>=4.40.0
 Requires-Dist: torch>=2.0.0
+Requires-Dist: uvicorn
 Provides-Extra: dev
 Requires-Dist: pytest>=8.0.0; extra == "dev"
 
@@ -54,6 +57,7 @@ clinical-rag-evaluation-framework/
 |       |-- config.py
 |       |-- ingest.py
 |       |-- query.py
+|       |-- api.py
 |       |-- langchain_retriever.py
 |       |-- rerank.py
 |       `-- evaluate.py
@@ -183,6 +187,22 @@ python -m clinical_rag_eval.query "What is retrieval augmented generation?" --pr
 Each result includes the source filename, page number, chunk index, vector distance, approximate similarity, and a cleaned text preview. The Evidence Summary uses rule-based extractive sentence selection from retrieved chunks; it is not an LLM-generated answer and does not invent new information.
 
 By default, retrieval is vector-only: ChromaDB returns the nearest chunks from the embedding space. With `--rerank`, the system first retrieves `--candidate-k` vector candidates, then uses `cross-encoder/ms-marco-MiniLM-L-6-v2` to score each query-chunk pair and reorder the final top-k results. Reranking can improve evidence-level retrieval, but it is slower because every candidate is scored by a cross-encoder.
+
+## FastAPI API Layer
+
+The CLI remains the main transparent research workflow, but the project also includes a small FastAPI layer for portfolio-ready API integration. Start the API after installing the package:
+
+```bash
+uvicorn clinical_rag_eval.api:app --reload
+```
+
+Available endpoints:
+
+- `GET http://127.0.0.1:8000/health` returns API status.
+- `POST http://127.0.0.1:8000/upload` accepts a `.pdf` file and saves it to `data/`.
+- `POST http://127.0.0.1:8000/query` accepts `{"question": "...", "top_k": 5}` and returns retrieved chunks from the existing ChromaDB collection.
+
+The upload endpoint does not automatically ingest documents. After uploading PDFs, run `python -m clinical_rag_eval.ingest` to rebuild the vector store. API logs are written to `logs/api.log`; uploaded file contents are not logged.
 
 ## Optional LangChain Retrieval Demo
 
@@ -322,7 +342,7 @@ Exact comparison metrics are written to `results/embedding_comparison.json` and 
 
 ## Future Work
 
-- FastAPI API for ingestion and retrieval endpoints.
+- Additional API hardening, including request validation, rate limiting, and deployment configuration.
 - Broader retrieval evaluation metrics such as nDCG and graded relevance labels.
 - Docker packaging for reproducible deployment.
 - Authentication for API access.
