@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 import json
 import logging
 import os
@@ -74,7 +74,7 @@ def write_audit_event(
     **fields: Any,
 ) -> None:
     entry = {
-        "timestamp": datetime.now(UTC).isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "event": event,
         "endpoint": endpoint,
         "status": status,
