@@ -183,6 +183,18 @@ Available endpoints:
 
 The upload endpoint does not automatically ingest documents. After uploading PDFs, run `python -m clinical_rag_eval.ingest` to rebuild the vector store. API logs are written to `logs/api.log`; uploaded file contents are not logged.
 
+### API Documentation
+
+![FastAPI Docs Overview](docs/screenshots/fastapi-docs-overview.png)
+
+### Health Check Response
+
+![Health Endpoint Response](docs/screenshots/health-endpoint-response.png)
+
+### Query Endpoint Response
+
+![Query Endpoint Response](docs/screenshots/query-endpoint-response.png)
+
 ## Docker
 
 Build the image:
@@ -207,18 +219,6 @@ Local PDFs and ChromaDB indexes are not committed to Git. For real usage, mount 
 ```bash
 docker run -p 8000:8000 -v ${PWD}/data:/app/data -v ${PWD}/chroma_db:/app/chroma_db -v ${PWD}/logs:/app/logs clinical-rag-evaluation-framework
 ```
-
-### API Documentation
-
-![FastAPI Docs Overview](docs/screenshots/fastapi-docs-overview.png)
-
-### Health Check Response
-
-![Health Endpoint Response](docs/screenshots/health-endpoint-response.png)
-
-### Query Endpoint Response
-
-![Query Endpoint Response](docs/screenshots/query-endpoint-response.png)
 
 ## Optional LangChain Retrieval Demo
 
