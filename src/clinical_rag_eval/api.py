@@ -156,11 +156,20 @@ class DemoRetrievedChunk(BaseModel):
     preview: str
 
 
+class DemoEvidenceSummary(BaseModel):
+    evidence_found: bool
+    retrieved_chunks: int
+    top_source: str | None
+    retrieval_mode: str
+    answer_generation: str
+
+
 class DemoQueryResponse(BaseModel):
     question: str
     top_k: int
     mode: str
     results: list[DemoRetrievedChunk]
+    evidence_summary: DemoEvidenceSummary
 
 
 DEMO_CORPUS: list[dict[str, str]] = [
@@ -316,6 +325,19 @@ def retrieve_demo_passages(question: str, top_k: int) -> list[DemoRetrievedChunk
     return results
 
 
+def build_demo_evidence_summary(
+    results: list[DemoRetrievedChunk],
+    retrieval_mode: str,
+) -> DemoEvidenceSummary:
+    return DemoEvidenceSummary(
+        evidence_found=bool(results),
+        retrieved_chunks=len(results),
+        top_source=results[0].source if results else None,
+        retrieval_mode=retrieval_mode,
+        answer_generation="disabled",
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> Any:
     logger.info("API startup")
@@ -339,7 +361,7 @@ def root() -> HTMLResponse:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Clinical RAG Evaluation Framework</title>
+  <title>Evidence-first Clinical RAG Evaluation Framework</title>
   <style>
     :root {
       color-scheme: dark;
@@ -578,19 +600,19 @@ def root() -> HTMLResponse:
 <body>
   <main>
     <section class="hero" aria-labelledby="page-title">
-      <div class="eyebrow">Retrieval-first healthcare AI</div>
-      <h1 id="page-title">Clinical RAG Evaluation Framework</h1>
-      <p class="subtitle">Retrieval first. Evidence focused. Deployment ready.</p>
-      <p class="demo-line">This is a hosted FastAPI demo. Use the API Docs to explore the available endpoints.</p>
+      <div class="eyebrow">Evidence-first healthcare AI</div>
+      <h1 id="page-title">Evidence-first Clinical RAG Evaluation Framework</h1>
+      <p class="subtitle">Retrieve evidence before generating answers.</p>
+      <p class="demo-line">No answer generation is performed. The system exposes retrieved evidence so users can inspect sources before any clinical response is considered.</p>
       <p class="description">
-        A retrieval-first healthcare AI prototype for document ingestion, vector search,
-        evidence retrieval, API deployment, and responsible evaluation.
+        Most RAG demos focus on producing fluent answers. This project focuses on
+        the step that should come first in healthcare AI: retrieving traceable
+        source evidence and evaluating whether that evidence is useful.
       </p>
       <nav class="actions" aria-label="Project links">
-        <a class="button" href="/demo">Try Interactive Playground</a>
+        <a class="button" href="/demo">Try Evidence Retrieval</a>
         <a class="button" href="/docs">API Docs</a>
-        <a class="button secondary" href="/health">API Status</a>
-        <a class="button secondary" href="https://github.com/mahrufa-binta-ali/clinical-rag-evaluation-framework">GitHub Repository</a>
+        <a class="button secondary" href="https://github.com/mahrufa-binta-ali/clinical-rag-evaluation-framework">GitHub Repo</a>
         <a class="button secondary" href="https://huggingface.co/spaces/Mahrufa/clinical-rag-evaluation-framework">Hugging Face Space</a>
       </nav>
     </section>
@@ -681,7 +703,7 @@ def demo() -> HTMLResponse:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Interactive API Playground</title>
+  <title>Evidence Retrieval Playground</title>
   <style>
     :root {
       color-scheme: dark;
@@ -760,6 +782,48 @@ def demo() -> HTMLResponse:
       line-height: 1.6;
     }
     .hidden { display: none; }
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0 0;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      color: #1e3554;
+      background: #eef5ff;
+      border: 1px solid #cfe0f8;
+      font-size: 0.88rem;
+      font-weight: 750;
+    }
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .guide-card {
+      padding: 14px;
+      border-radius: 8px;
+      background: #f6f9ff;
+      border: 1px solid #dbe4f2;
+    }
+    .guide-card h3 {
+      margin: 0 0 6px;
+      color: var(--ink);
+      font-size: 1rem;
+      letter-spacing: 0;
+    }
+    .guide-card p {
+      margin: 0;
+      color: var(--ink-muted);
+      line-height: 1.5;
+      font-size: 0.94rem;
+    }
     label {
       display: block;
       margin-bottom: 8px;
@@ -914,6 +978,7 @@ def demo() -> HTMLResponse:
         align-items: flex-start;
         flex-direction: column;
       }
+      .guide-grid { grid-template-columns: 1fr; }
       .two-fields { grid-template-columns: 1fr; }
       .primary, .secondary-link { width: 100%; }
     }
@@ -922,15 +987,14 @@ def demo() -> HTMLResponse:
 <body>
   <main>
     <nav class="topbar" aria-label="Demo navigation">
-      <a href="/">Clinical RAG Evaluation Framework</a>
+      <a href="/">Evidence-first Clinical RAG Evaluation Framework</a>
       <span><a href="/docs">API Docs</a> | <a href="/health">API Status</a></span>
     </nav>
 
     <header>
-      <h1>Interactive API Playground</h1>
+      <h1>Evidence Retrieval Playground</h1>
       <p class="lead">
-        Test the hosted FastAPI demo from one page: run sample retrieval, upload and
-        index a public PDF, search uploaded documents, or open developer API tools.
+        Ask a question, retrieve evidence, inspect the source passages.
       </p>
     </header>
 
@@ -949,10 +1013,38 @@ def demo() -> HTMLResponse:
         </div>
       </section>
 
-      <section class="panel" aria-labelledby="sample-title">
-        <h2 id="sample-title">Try the Sample Retrieval Demo</h2>
+      <section class="panel" aria-labelledby="why-title">
+        <h2 id="why-title">Why evidence first?</h2>
         <p class="section-copy">
-          This built-in demo works immediately using a small public/synthetic sample corpus.
+          In healthcare AI, a fluent answer is not enough. A system should first
+          retrieve relevant source passages, expose where they came from, and make
+          the evidence inspectable. This demo keeps answer generation disabled so
+          the retrieval layer can be evaluated directly.
+        </p>
+        <div class="guide-grid" aria-label="Evidence-first guide">
+          <article class="guide-card">
+            <h3>Evidence first</h3>
+            <p>The system retrieves source passages before any answer is considered.</p>
+          </article>
+          <article class="guide-card">
+            <h3>Source visible</h3>
+            <p>Retrieved results show where the evidence came from, such as source, page, or chunk.</p>
+          </article>
+          <article class="guide-card">
+            <h3>Generation disabled</h3>
+            <p>This prototype does not generate medical answers; it evaluates the retrieval layer first.</p>
+          </article>
+          <article class="guide-card">
+            <h3>Privacy boundary</h3>
+            <p>Use only public, synthetic, or de-identified documents. Do not upload PHI, PII, or real patient records.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="sample-title">
+        <h2 id="sample-title">Try Built-in Evidence Retrieval</h2>
+        <p class="section-copy">
+          Uses a small public/synthetic sample corpus.
         </p>
         <div class="field">
           <label for="sample-question">Question</label>
@@ -985,11 +1077,21 @@ def demo() -> HTMLResponse:
         </div>
       </section>
 
+      <section class="panel" aria-labelledby="summary-title">
+        <h2 id="summary-title">Evidence Evaluation Summary</h2>
+        <p class="section-copy">This framework evaluates evidence retrieval before answer generation.</p>
+        <pre class="json-output" id="evidence-summary">Run sample retrieval or search uploaded documents to summarize retrieved evidence.</pre>
+        <div class="badges">
+          <span class="badge">Source visible</span>
+          <span class="badge">Generation disabled</span>
+        </div>
+      </section>
+
       <section class="panel" aria-labelledby="upload-title">
         <h2 id="upload-title">Upload and Index a PDF</h2>
         <p class="section-copy">
-          Upload a public or synthetic PDF and rebuild the ChromaDB vector store so it
-          can be searched below.
+          For public, synthetic, or de-identified PDFs only. This calls
+          /upload-and-index to rebuild the ChromaDB vector store for querying.
         </p>
         <div class="field">
           <label for="pdf-file">PDF file</label>
@@ -1004,7 +1106,7 @@ def demo() -> HTMLResponse:
       </section>
 
       <section class="panel" aria-labelledby="query-title">
-        <h2 id="query-title">Ask Questions from Uploaded Documents</h2>
+        <h2 id="query-title">Search Uploaded Documents</h2>
         <p class="section-copy">
           Calls the full /query endpoint backed by the configured ChromaDB vector store.
         </p>
@@ -1030,11 +1132,28 @@ def demo() -> HTMLResponse:
         </div>
       </section>
 
+      <section class="panel" aria-labelledby="boundary-title">
+        <h2 id="boundary-title">Responsible AI Boundary</h2>
+        <p class="section-copy">
+          No medical advice. Do not upload PHI, PII, or real patient records. This
+          project is not certified HIPAA or GDPR compliant. API key protection is
+          optional demo-level protection, and audit logs avoid API keys, uploaded
+          contents, full query text, and retrieved chunk contents.
+        </p>
+        <div class="badges">
+          <span class="badge">No medical advice</span>
+          <span class="badge">No PHI or PII</span>
+          <span class="badge">Audit-safe metadata</span>
+          <span class="badge">Demo-level protection</span>
+        </div>
+      </section>
+
       <section class="panel" aria-labelledby="developer-title">
         <h2 id="developer-title">Developer API</h2>
         <p class="section-copy">Use these endpoints for API inspection and status checks.</p>
         <div class="button-row">
           <a class="secondary-link" href="/docs">Open /docs</a>
+          <a class="secondary-link" href="https://github.com/mahrufa-binta-ali/clinical-rag-evaluation-framework">GitHub Repo</a>
           <button class="primary" id="status-button" type="button">Check /health</button>
         </div>
         <pre class="json-output" id="status-output">Health response will appear here.</pre>
@@ -1053,6 +1172,7 @@ def demo() -> HTMLResponse:
     const sampleTopK = document.getElementById("sample-top-k");
     const sampleButton = document.getElementById("sample-button");
     const sampleResults = document.getElementById("sample-results");
+    const evidenceSummary = document.getElementById("evidence-summary");
     const pdfFile = document.getElementById("pdf-file");
     const uploadButton = document.getElementById("upload-button");
     const uploadOutput = document.getElementById("upload-output");
@@ -1086,34 +1206,53 @@ def demo() -> HTMLResponse:
       target.textContent = JSON.stringify(data, null, 2);
     }
 
+    function renderEvidenceSummary(summary) {
+      renderJson(evidenceSummary, summary);
+    }
+
+    function summarizeQueryEvidence(data) {
+      const results = data.results || [];
+      return {
+        evidence_found: results.length > 0,
+        retrieved_chunks: results.length,
+        top_source: results.length > 0 ? results[0].source : null,
+        retrieval_mode: "ChromaDB vector store",
+        answer_generation: "disabled"
+      };
+    }
+
     function renderDemoResults(data) {
       if (!data.results || data.results.length === 0) {
         sampleResults.innerHTML = '<div class="empty">No demo passages matched this question.</div>';
+        renderEvidenceSummary(data.evidence_summary);
         return;
       }
 
       sampleResults.innerHTML = data.results.map((item) => `
         <article class="result-card">
-          <h3>Rank ${item.rank}: ${escapeHtml(item.source)}</h3>
+          <h3>Retrieved Evidence ${item.rank}: ${escapeHtml(item.source)}</h3>
           <p class="meta">Score ${item.score} | ${escapeHtml(data.mode)}</p>
           <p class="preview">${escapeHtml(item.preview)}</p>
         </article>
       `).join("");
+      renderEvidenceSummary(data.evidence_summary);
     }
 
     function renderQueryResults(data) {
       if (!data.results || data.results.length === 0) {
         queryResults.innerHTML = '<div class="empty">No chunks returned.</div>';
+        renderEvidenceSummary(summarizeQueryEvidence(data));
         return;
       }
 
       queryResults.innerHTML = data.results.map((item) => `
         <article class="result-card">
-          <h3>Rank ${item.rank}: ${escapeHtml(item.source)}</h3>
-          <p class="meta">Page ${escapeHtml(item.page)} | Distance ${escapeHtml(item.distance)}</p>
+          <h3>Retrieved Evidence ${item.rank}: ${escapeHtml(item.source)}</h3>
+          <p class="meta">Page ${escapeHtml(item.page)} | Chunk ${escapeHtml(item.chunk_index)} | Distance ${escapeHtml(item.distance)}</p>
           <p class="preview">${escapeHtml(item.preview)}</p>
         </article>
       `).join("");
+      renderEvidenceSummary(summarizeQueryEvidence(data));
     }
 
     async function parseResponse(response) {
@@ -1256,11 +1395,14 @@ def demo_query(request: DemoQueryRequest) -> DemoQueryResponse:
         raise HTTPException(status_code=400, detail="Question must not be empty.")
 
     top_k = min(request.top_k, len(DEMO_CORPUS))
+    mode = "built-in demo corpus"
+    results = retrieve_demo_passages(question, top_k)
     return DemoQueryResponse(
         question=question,
         top_k=top_k,
-        mode="built-in demo corpus",
-        results=retrieve_demo_passages(question, top_k),
+        mode=mode,
+        results=results,
+        evidence_summary=build_demo_evidence_summary(results, mode),
     )
 
 

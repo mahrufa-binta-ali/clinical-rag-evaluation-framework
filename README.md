@@ -7,11 +7,11 @@ sdk: docker
 app_port: 8000
 ---
 
-# Clinical RAG Evaluation Framework
+# Evidence-first Clinical RAG Evaluation Framework
 
-A clean first-stage retrieval pipeline for healthcare AI research. The project ingests public or synthetic clinical documents, extracts text from PDFs, chunks the text with overlap, embeds the chunks with a local sentence-transformers model, stores vectors in ChromaDB, and retrieves the most relevant passages from the terminal.
+An evidence-first clinical RAG evaluation framework for healthcare AI research. The project helps prevent healthcare AI from becoming a black-box answer generator by forcing the system to retrieve traceable source evidence first, then evaluate whether that evidence is useful.
 
-This repository intentionally stops at retrieval. It does not call an LLM or generate medical answers yet. That boundary keeps the project focused on the foundation of retrieval-augmented generation: document processing, representation, indexing, and evidence lookup.
+This repository intentionally stops at retrieval. It does not call an LLM or generate medical answers. Retrieved evidence is inspectable through the CLI, API, and hosted playground before any clinical response is considered.
 
 ## Motivation
 
@@ -274,7 +274,7 @@ The FastAPI Docker app is deployed on Hugging Face Spaces.
 - API documentation: https://mahrufa-clinical-rag-evaluation-framework.hf.space/docs
 - Hugging Face Space: https://huggingface.co/spaces/Mahrufa/clinical-rag-evaluation-framework
 
-The deployed demo exposes the API layer of the project. `/` opens the landing page, `/demo` opens an interactive website playground, and `/docs` opens developer API documentation. The playground includes sample retrieval that works immediately with a built-in public/synthetic corpus. It also includes upload-and-index support so public or synthetic PDFs can be indexed for querying. The full `/query` endpoint requires an ingested ChromaDB vector store. Upload and query actions may require an API key if `API_KEY` is enabled. Do not upload PHI, PII, or real patient records.
+The deployed demo exposes the API layer of the project. `/` opens the evidence-first landing page, `/demo` lets visitors try evidence retrieval, and `/docs` opens developer API documentation. The playground includes sample retrieval that works immediately with a built-in public/synthetic corpus and keeps answer generation disabled so retrieved evidence remains inspectable. It also includes upload-and-index support so public or synthetic PDFs can be indexed for querying. The full `/query` endpoint requires an ingested ChromaDB vector store. Upload and query actions may require an API key if `API_KEY` is enabled. Do not upload PHI, PII, or real patient records.
 
 This deployment is intended as a portfolio demonstration of Dockerized FastAPI deployment for a retrieval-first healthcare AI project. Do not upload real patient data or sensitive clinical documents.
 

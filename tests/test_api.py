@@ -19,9 +19,8 @@ def test_root_endpoint() -> None:
 
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
-    assert "Clinical RAG Evaluation Framework" in response.text
+    assert "Evidence-first Clinical RAG Evaluation Framework" in response.text
     assert "API Docs" in response.text
-    assert "How to explore this demo" in response.text
     assert "/docs" in response.text
 
 
@@ -31,9 +30,11 @@ def test_demo_endpoint() -> None:
 
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
-    assert "Try the Sample Retrieval Demo" in response.text
+    assert "Evidence Retrieval Playground" in response.text
+    assert "Why evidence first?" in response.text
+    assert "Try Built-in Evidence Retrieval" in response.text
     assert "Upload and Index a PDF" in response.text
-    assert "Ask Questions from Uploaded Documents" in response.text
+    assert "Search Uploaded Documents" in response.text
     assert "Developer API" in response.text
 
 
@@ -64,6 +65,8 @@ def test_demo_query_returns_builtin_results() -> None:
     assert body["mode"] == "built-in demo corpus"
     assert len(body["results"]) >= 1
     assert body["results"][0]["rank"] == 1
+    assert "evidence_summary" in body
+    assert body["evidence_summary"]["answer_generation"] == "disabled"
 
 
 def test_health_endpoint() -> None:
