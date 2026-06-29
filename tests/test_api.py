@@ -18,7 +18,11 @@ def test_root_endpoint() -> None:
         response = client.get("/")
 
     assert response.status_code == 200
-    assert response.json()["project"] == "Clinical RAG Evaluation Framework"
+    assert "text/html" in response.headers["content-type"]
+    assert "Clinical RAG Evaluation Framework" in response.text
+    assert "API Docs" in response.text
+    assert "How to explore this demo" in response.text
+    assert "/docs" in response.text
 
 
 def test_health_endpoint() -> None:

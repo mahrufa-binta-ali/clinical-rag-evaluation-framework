@@ -13,6 +13,7 @@ import shutil
 from typing import Any
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
 
@@ -151,17 +152,344 @@ app = FastAPI(title=PROJECT_NAME, lifespan=lifespan)
 
 
 @app.get("/")
-def root() -> dict[str, str]:
-    return {
-        "project": PROJECT_NAME,
-        "status": "running",
-        "docs": "/docs",
-        "health": "/health",
-        "message": (
-            "Retrieval-first healthcare AI API. Use only public, "
-            "de-identified, or synthetic documents."
-        ),
+def root() -> HTMLResponse:
+    return HTMLResponse(
+        content="""
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clinical RAG Evaluation Framework</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08111f;
+      --panel: #f8fbff;
+      --panel-soft: #eaf0fb;
+      --text: #f7f9fc;
+      --muted: #b8c6d9;
+      --ink: #102033;
+      --ink-muted: #526176;
+      --blue: #3b82f6;
+      --purple: #8b5cf6;
+      --border: rgba(255, 255, 255, 0.14);
+      --shadow: rgba(0, 0, 0, 0.24);
     }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.28), transparent 32rem),
+        radial-gradient(circle at top right, rgba(139, 92, 246, 0.24), transparent 30rem),
+        var(--bg);
+      color: var(--text);
+    }
+
+    a {
+      color: inherit;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 48px 0;
+    }
+
+    .hero {
+      display: grid;
+      gap: 18px;
+      padding: 24px 0 28px;
+    }
+
+    .eyebrow {
+      width: fit-content;
+      padding: 7px 11px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 860px;
+      font-size: clamp(2.25rem, 7vw, 4.8rem);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      font-size: clamp(1.18rem, 2.4vw, 1.7rem);
+      color: #d8e2f0;
+      font-weight: 650;
+    }
+
+    .description,
+    .demo-line {
+      max-width: 780px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.7;
+    }
+
+    .demo-line {
+      color: #edf4ff;
+      font-weight: 650;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 8px;
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      box-shadow: 0 12px 30px rgba(59, 130, 246, 0.18);
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .button.secondary {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .button:hover,
+    .button:focus-visible {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.42);
+      outline: none;
+    }
+
+    .section {
+      margin-top: 24px;
+    }
+
+    .section h2 {
+      margin: 0 0 14px;
+      font-size: clamp(1.3rem, 2.2vw, 1.8rem);
+      letter-spacing: 0;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 14px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.07);
+      color: #eaf2ff;
+      line-height: 1.55;
+    }
+
+    .step span {
+      display: inline-grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      color: white;
+      font-weight: 800;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px;
+      margin: 0;
+    }
+
+    .card {
+      min-height: 124px;
+      padding: 16px;
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+      border: 1px solid var(--panel-soft);
+      box-shadow: 0 16px 36px var(--shadow);
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      line-height: 1.25;
+      font-weight: 750;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--ink-muted);
+      line-height: 1.5;
+      font-size: 0.94rem;
+    }
+
+    .note {
+      margin-top: 24px;
+      padding: 18px 20px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      color: #e5edf8;
+      line-height: 1.65;
+    }
+
+    .note.vector {
+      background: rgba(59, 130, 246, 0.12);
+      border-color: rgba(96, 165, 250, 0.28);
+    }
+
+    .note.safety {
+      background: rgba(139, 92, 246, 0.12);
+      border-color: rgba(167, 139, 250, 0.3);
+    }
+
+    .note strong {
+      color: white;
+    }
+
+    footer {
+      margin-top: 34px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 560px) {
+      main {
+        width: min(100% - 24px, 1120px);
+        padding: 28px 0;
+      }
+
+      .button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero" aria-labelledby="page-title">
+      <div class="eyebrow">Retrieval-first healthcare AI</div>
+      <h1 id="page-title">Clinical RAG Evaluation Framework</h1>
+      <p class="subtitle">Retrieval first. Evidence focused. Deployment ready.</p>
+      <p class="demo-line">This is a hosted FastAPI demo. Use the API Docs to explore the available endpoints.</p>
+      <p class="description">
+        A retrieval-first healthcare AI prototype for document ingestion, vector search,
+        evidence retrieval, API deployment, and responsible evaluation.
+      </p>
+      <nav class="actions" aria-label="Project links">
+        <a class="button" href="/docs">API Docs</a>
+        <a class="button secondary" href="/health">API Status</a>
+        <a class="button secondary" href="https://github.com/mahrufa-binta-ali/clinical-rag-evaluation-framework">GitHub Repository</a>
+        <a class="button secondary" href="https://huggingface.co/spaces/Mahrufa/clinical-rag-evaluation-framework">Hugging Face Space</a>
+      </nav>
+    </section>
+
+    <section class="section" aria-labelledby="explore-title">
+      <h2 id="explore-title">How to explore this demo</h2>
+      <ol class="steps">
+        <li class="step"><span>1</span><div>Open API Docs.</div></li>
+        <li class="step"><span>2</span><div>Try GET /health to confirm the API is running.</div></li>
+        <li class="step"><span>3</span><div>Review /upload and /query endpoint schemas for the retrieval workflow.</div></li>
+      </ol>
+    </section>
+
+    <section class="note vector" aria-label="Hosted demo vector store note">
+      <strong>Hosted demo note:</strong>
+      The hosted demo may not include a populated ChromaDB vector store. Retrieval results
+      require documents to be ingested first.
+    </section>
+
+    <section class="section" aria-labelledby="features-title">
+      <h2 id="features-title">What this project demonstrates</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>PDF Ingestion</h3>
+          <p>Reads public, synthetic, or de-identified PDFs.</p>
+        </article>
+        <article class="card">
+          <h3>Token-aware Chunking</h3>
+          <p>Splits text using embedding-model-aware token limits.</p>
+        </article>
+        <article class="card">
+          <h3>BGE Embeddings</h3>
+          <p>Converts chunks into semantic vectors.</p>
+        </article>
+        <article class="card">
+          <h3>ChromaDB Vector Store</h3>
+          <p>Stores and searches retrieved evidence chunks.</p>
+        </article>
+        <article class="card">
+          <h3>Retrieval Evaluation</h3>
+          <p>Measures source-level and evidence-level retrieval quality.</p>
+        </article>
+        <article class="card">
+          <h3>FastAPI Layer</h3>
+          <p>Exposes retrieval functionality through API endpoints.</p>
+        </article>
+        <article class="card">
+          <h3>Docker Deployment</h3>
+          <p>Runs the app in a portable container.</p>
+        </article>
+        <article class="card">
+          <h3>API Key Protection</h3>
+          <p>Adds optional protection for upload and query routes.</p>
+        </article>
+        <article class="card">
+          <h3>Audit Logging</h3>
+          <p>Records structured API events without sensitive contents.</p>
+        </article>
+        <article class="card">
+          <h3>Privacy Notes</h3>
+          <p>Documents safe use boundaries for healthcare AI.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="note safety" aria-label="Safety note">
+      <strong>Safety note:</strong>
+      Research and portfolio prototype only. No medical advice. Do not upload real patient
+      data, PHI, or PII.
+    </section>
+
+    <footer>
+      FastAPI retrieval service for evidence-focused clinical document search.
+    </footer>
+  </main>
+</body>
+</html>
+        """
+    )
 
 
 @app.get("/health")
