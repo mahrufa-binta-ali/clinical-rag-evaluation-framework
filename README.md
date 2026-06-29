@@ -1,3 +1,12 @@
+---
+title: Clinical RAG Evaluation Framework
+emoji: 🧬
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 8000
+---
+
 # clinical-rag-evaluation-framework
 
 A clean first-stage retrieval pipeline for healthcare AI research. The project ingests public or synthetic clinical documents, extracts text from PDFs, chunks the text with overlap, embeds the chunks with a local sentence-transformers model, stores vectors in ChromaDB, and retrieves the most relevant passages from the terminal.
