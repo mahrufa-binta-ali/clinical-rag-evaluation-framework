@@ -22,6 +22,14 @@ def test_root_endpoint() -> None:
     assert "Evidence-first Clinical RAG Evaluation Framework" in response.text
     assert "API Docs" in response.text
     assert "/docs" in response.text
+    assert (
+        'href="https://github.com/mahrufa-binta-ali/clinical-rag-evaluation-framework" '
+        'target="_blank" rel="noopener noreferrer"'
+    ) in response.text
+    assert (
+        'href="https://huggingface.co/spaces/Mahrufa/clinical-rag-evaluation-framework" '
+        'target="_blank" rel="noopener noreferrer"'
+    ) in response.text
 
 
 def test_demo_endpoint() -> None:
@@ -36,6 +44,10 @@ def test_demo_endpoint() -> None:
     assert "Upload and Index a PDF" in response.text
     assert "Search Uploaded Documents" in response.text
     assert "Developer API" in response.text
+    assert (
+        'href="https://github.com/mahrufa-binta-ali/clinical-rag-evaluation-framework" '
+        'target="_blank" rel="noopener noreferrer"'
+    ) in response.text
 
 
 def test_demo_config_returns_api_key_requirement(

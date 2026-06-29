@@ -612,8 +612,8 @@ def root() -> HTMLResponse:
       <nav class="actions" aria-label="Project links">
         <a class="button" href="/demo">Try Evidence Retrieval</a>
         <a class="button" href="/docs">API Docs</a>
-        <a class="button secondary" href="https://github.com/mahrufa-binta-ali/clinical-rag-evaluation-framework">GitHub Repo</a>
-        <a class="button secondary" href="https://huggingface.co/spaces/Mahrufa/clinical-rag-evaluation-framework">Hugging Face Space</a>
+        <a class="button secondary" href="https://github.com/mahrufa-binta-ali/clinical-rag-evaluation-framework" target="_blank" rel="noopener noreferrer">GitHub Repo</a>
+        <a class="button secondary" href="https://huggingface.co/spaces/Mahrufa/clinical-rag-evaluation-framework" target="_blank" rel="noopener noreferrer">Hugging Face Space</a>
       </nav>
     </section>
 
@@ -1153,7 +1153,7 @@ def demo() -> HTMLResponse:
         <p class="section-copy">Use these endpoints for API inspection and status checks.</p>
         <div class="button-row">
           <a class="secondary-link" href="/docs">Open /docs</a>
-          <a class="secondary-link" href="https://github.com/mahrufa-binta-ali/clinical-rag-evaluation-framework">GitHub Repo</a>
+          <a class="secondary-link" href="https://github.com/mahrufa-binta-ali/clinical-rag-evaluation-framework" target="_blank" rel="noopener noreferrer">GitHub Repo</a>
           <button class="primary" id="status-button" type="button">Check /health</button>
         </div>
         <pre class="json-output" id="status-output">Health response will appear here.</pre>
