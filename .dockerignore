@@ -1,0 +1,12 @@
+.git
+.venv
+__pycache__
+.pytest_cache
+*.pyc
+chroma_db/
+data/*.pdf
+logs/*.log
+.env
+.DS_Store
+Thumbs.db
+Desktop.ini

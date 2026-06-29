@@ -183,6 +183,31 @@ Available endpoints:
 
 The upload endpoint does not automatically ingest documents. After uploading PDFs, run `python -m clinical_rag_eval.ingest` to rebuild the vector store. API logs are written to `logs/api.log`; uploaded file contents are not logged.
 
+## Docker
+
+Build the image:
+
+```bash
+docker build -t clinical-rag-evaluation-framework .
+```
+
+Run the API:
+
+```bash
+docker run -p 8000:8000 clinical-rag-evaluation-framework
+```
+
+Then open:
+
+- `http://127.0.0.1:8000/health`
+- `http://127.0.0.1:8000/docs`
+
+Local PDFs and ChromaDB indexes are not committed to Git. For real usage, mount local folders for `data/`, `chroma_db/`, and `logs/` so documents, vector indexes, and API logs persist outside the container:
+
+```bash
+docker run -p 8000:8000 -v ${PWD}/data:/app/data -v ${PWD}/chroma_db:/app/chroma_db -v ${PWD}/logs:/app/logs clinical-rag-evaluation-framework
+```
+
 ### API Documentation
 
 ![FastAPI Docs Overview](docs/screenshots/fastapi-docs-overview.png)
@@ -335,7 +360,6 @@ Exact comparison metrics are written to `results/embedding_comparison.json` and 
 
 - Additional API hardening, including request validation, rate limiting, and deployment configuration.
 - Broader retrieval evaluation metrics such as nDCG and graded relevance labels.
-- Docker packaging for reproducible deployment.
 - Authentication for API access.
 - Audit logging for document ingestion and retrieval events.
 - RAG answer generation with citation-aware responses.
