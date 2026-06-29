@@ -274,6 +274,26 @@ The deployed demo exposes the API layer of the project. The `/health` and `/docs
 
 This deployment is intended as a portfolio demonstration of Dockerized FastAPI deployment for a retrieval-first healthcare AI project. Do not upload real patient data or sensitive clinical documents.
 
+## Privacy and Compliance Notes
+
+This project is a research and portfolio prototype. It is not a production clinical system, does not provide medical advice, and does not generate clinical answers with an LLM. The design is retrieval-first and evidence-focused: it indexes documents, retrieves relevant passages, and supports evaluation of retrieval quality.
+
+Use only public, synthetic, or properly de-identified documents. Do not upload protected health information, personally identifiable information, or real patient records.
+
+The project demonstrates awareness of healthcare privacy and compliance requirements, including HIPAA and GDPR considerations, but it is not certified HIPAA compliant or GDPR compliant. Production use would require additional legal, technical, and organizational controls, including:
+
+- authentication and authorization
+- encryption in transit and at rest
+- access control
+- audit trails
+- retention and deletion policies
+- consent or another legal basis for data processing
+- data processing agreements
+- incident response process
+- clinical validation and human oversight
+
+API keys provide basic demo-level protection only; they are not complete security. Audit logs intentionally avoid API keys, full query text, uploaded contents, and retrieved chunk contents.
+
 ## Optional LangChain Retrieval Demo
 
 The main retrieval pipeline is implemented directly with ChromaDB and SentenceTransformers for transparency and easier debugging. LangChain is included as an optional wrapper using `langchain-chroma` and `langchain-huggingface` to demonstrate framework integration over the same persisted Chroma collection. This is still retrieval-only; it does not add LLM-based RAG answer generation.
