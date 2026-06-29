@@ -269,11 +269,12 @@ This demo deployment exposes only retrieval endpoints. No real patient data shou
 The FastAPI Docker app is deployed on Hugging Face Spaces.
 
 - Landing page: https://mahrufa-clinical-rag-evaluation-framework.hf.space/
+- Interactive API playground: https://mahrufa-clinical-rag-evaluation-framework.hf.space/demo
 - Health check: https://mahrufa-clinical-rag-evaluation-framework.hf.space/health
 - API documentation: https://mahrufa-clinical-rag-evaluation-framework.hf.space/docs
 - Hugging Face Space: https://huggingface.co/spaces/Mahrufa/clinical-rag-evaluation-framework
 
-The deployed demo exposes the API layer of the project. `GET /` opens a simple hosted landing page, `/docs` provides interactive API documentation, and `/health` is mainly an API status endpoint. The `/query` endpoint requires a populated local ChromaDB vector store, so it may not return retrieval results on the hosted demo unless documents and vector indexes are available inside the deployment environment.
+The deployed demo exposes the API layer of the project. `/` opens the landing page, `/demo` opens an interactive website playground, and `/docs` opens developer API documentation. The playground includes sample retrieval that works immediately with a built-in public/synthetic corpus. It also includes upload-and-index support so public or synthetic PDFs can be indexed for querying. The full `/query` endpoint requires an ingested ChromaDB vector store. Upload and query actions may require an API key if `API_KEY` is enabled. Do not upload PHI, PII, or real patient records.
 
 This deployment is intended as a portfolio demonstration of Dockerized FastAPI deployment for a retrieval-first healthcare AI project. Do not upload real patient data or sensitive clinical documents.
 

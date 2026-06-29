@@ -25,6 +25,47 @@ def test_root_endpoint() -> None:
     assert "/docs" in response.text
 
 
+def test_demo_endpoint() -> None:
+    with TestClient(app) as client:
+        response = client.get("/demo")
+
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "Try the Sample Retrieval Demo" in response.text
+    assert "Upload and Index a PDF" in response.text
+    assert "Ask Questions from Uploaded Documents" in response.text
+    assert "Developer API" in response.text
+
+
+def test_demo_config_returns_api_key_requirement(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("API_KEY", "change-me")
+
+    with TestClient(app) as client:
+        response = client.get("/demo-config")
+
+    assert response.status_code == 200
+    assert response.json() == {"api_key_required": True}
+
+
+def test_demo_query_returns_builtin_results() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/demo-query",
+            json={
+                "question": "Why is evidence retrieval important in healthcare AI?",
+                "top_k": 3,
+            },
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["mode"] == "built-in demo corpus"
+    assert len(body["results"]) >= 1
+    assert body["results"][0]["rank"] == 1
+
+
 def test_health_endpoint() -> None:
     with TestClient(app) as client:
         response = client.get("/health")
@@ -40,6 +81,17 @@ def test_upload_rejects_non_pdf_file() -> None:
     with TestClient(app) as client:
         response = client.post(
             "/upload",
+            files={"file": ("notes.txt", b"not a pdf", "text/plain")},
+        )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Only .pdf files are allowed."
+
+
+def test_upload_and_index_rejects_non_pdf_file() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/upload-and-index",
             files={"file": ("notes.txt", b"not a pdf", "text/plain")},
         )
 

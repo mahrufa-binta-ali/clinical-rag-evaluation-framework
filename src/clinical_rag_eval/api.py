@@ -8,6 +8,7 @@ import json
 import logging
 import os
 from pathlib import Path
+import re
 import secrets
 import shutil
 from typing import Any
@@ -18,6 +19,11 @@ from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
 
 from clinical_rag_eval.config import (
+    CHUNK_OVERLAP_CHARS,
+    CHUNK_OVERLAP_TOKENS,
+    CHUNK_SIZE_CHARS,
+    CHUNK_SIZE_TOKENS,
+    CHUNKING_METHOD,
     COLLECTION_NAME,
     DATA_DIR,
     DEFAULT_TOP_K,
@@ -25,6 +31,7 @@ from clinical_rag_eval.config import (
     PERSIST_DIR,
     PROJECT_ROOT,
 )
+from clinical_rag_eval.ingest import ingest_documents
 from clinical_rag_eval.query import (
     QuerySetupError,
     ensure_collection_has_documents,
@@ -135,6 +142,178 @@ class QueryResponse(BaseModel):
     collection: str
     embedding_model: str
     results: list[RetrievedChunk]
+
+
+class DemoQueryRequest(BaseModel):
+    question: str = Field(..., min_length=1)
+    top_k: int = Field(3, ge=1, le=10)
+
+
+class DemoRetrievedChunk(BaseModel):
+    rank: int
+    source: str
+    score: float
+    preview: str
+
+
+class DemoQueryResponse(BaseModel):
+    question: str
+    top_k: int
+    mode: str
+    results: list[DemoRetrievedChunk]
+
+
+DEMO_CORPUS: list[dict[str, str]] = [
+    {
+        "source": "demo_corpus/rag_overview",
+        "text": (
+            "Retrieval augmented generation connects a user question to relevant "
+            "source passages before any answer is produced. This project focuses "
+            "on the retrieval foundation: finding evidence that can be inspected."
+        ),
+    },
+    {
+        "source": "demo_corpus/evidence_retrieval",
+        "text": (
+            "Evidence retrieval is important in healthcare AI because downstream "
+            "answers are only as trustworthy as the clinical passages they use. "
+            "A retrieval-first system makes source evidence visible for review."
+        ),
+    },
+    {
+        "source": "demo_corpus/vector_search",
+        "text": (
+            "Vector search represents document chunks as semantic embeddings and "
+            "compares a question against those vectors. It helps retrieve passages "
+            "with similar meaning, not only exact keyword matches."
+        ),
+    },
+    {
+        "source": "demo_corpus/healthcare_ai_safety",
+        "text": (
+            "Healthcare AI safety requires clear boundaries, careful validation, "
+            "human oversight, and avoidance of unsupported medical advice. This "
+            "demo is not a production clinical system."
+        ),
+    },
+    {
+        "source": "demo_corpus/safe_documents",
+        "text": (
+            "Only public, synthetic, or properly de-identified documents should be "
+            "used. Protected health information, personally identifiable information, "
+            "and real patient records should not be uploaded."
+        ),
+    },
+    {
+        "source": "demo_corpus/api_key_protection",
+        "text": (
+            "API key protection is optional and demo-level. When API_KEY is set, "
+            "upload and query routes require the X-API-Key header, while public "
+            "demo, health, landing, and documentation routes remain open."
+        ),
+    },
+    {
+        "source": "demo_corpus/audit_logging",
+        "text": (
+            "Audit logging records structured API events such as startup, health "
+            "checks, unauthorized requests, uploads, and query failures. Logs avoid "
+            "API keys, full query text, uploaded contents, and retrieved chunks."
+        ),
+    },
+    {
+        "source": "demo_corpus/privacy_notes",
+        "text": (
+            "Privacy notes document responsible use boundaries. The project shows "
+            "awareness of HIPAA and GDPR considerations but does not claim certified "
+            "compliance for production clinical deployment."
+        ),
+    },
+    {
+        "source": "demo_corpus/retrieval_evaluation",
+        "text": (
+            "Retrieval evaluation measures whether the system finds the expected "
+            "source document and whether returned chunks contain useful evidence "
+            "phrases for a benchmark question."
+        ),
+    },
+    {
+        "source": "demo_corpus/deployment",
+        "text": (
+            "Docker and FastAPI make the retrieval service portable for local and "
+            "hosted demos. Cloud deployments may need a populated vector store "
+            "before the full query endpoint can return production retrieval results."
+        ),
+    },
+]
+
+STOP_WORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "be",
+    "for",
+    "in",
+    "is",
+    "it",
+    "of",
+    "or",
+    "that",
+    "the",
+    "this",
+    "to",
+    "what",
+    "when",
+    "why",
+    "with",
+}
+
+
+def tokenize_demo_text(text: str) -> set[str]:
+    return {
+        token
+        for token in re.findall(r"[a-z0-9]+", text.lower())
+        if token not in STOP_WORDS and len(token) > 2
+    }
+
+
+DEMO_INDEX = [
+    {
+        "source": passage["source"],
+        "text": passage["text"],
+        "tokens": tokenize_demo_text(passage["text"]),
+    }
+    for passage in DEMO_CORPUS
+]
+
+
+def retrieve_demo_passages(question: str, top_k: int) -> list[DemoRetrievedChunk]:
+    query_terms = tokenize_demo_text(question)
+    ranked: list[tuple[float, dict[str, Any]]] = []
+
+    for passage in DEMO_INDEX:
+        passage_tokens = passage["tokens"]
+        overlap = query_terms & passage_tokens
+        if query_terms:
+            score = len(overlap) / len(query_terms)
+        else:
+            score = 0.0
+        ranked.append((score, passage))
+
+    ranked.sort(key=lambda item: (item[0], item[1]["source"]), reverse=True)
+
+    results: list[DemoRetrievedChunk] = []
+    for rank, (score, passage) in enumerate(ranked[:top_k], start=1):
+        results.append(
+            DemoRetrievedChunk(
+                rank=rank,
+                source=str(passage["source"]),
+                score=round(float(score), 2),
+                preview=str(passage["text"]),
+            )
+        )
+    return results
 
 
 @asynccontextmanager
@@ -408,6 +587,7 @@ def root() -> HTMLResponse:
         evidence retrieval, API deployment, and responsible evaluation.
       </p>
       <nav class="actions" aria-label="Project links">
+        <a class="button" href="/demo">Try Interactive Playground</a>
         <a class="button" href="/docs">API Docs</a>
         <a class="button secondary" href="/health">API Status</a>
         <a class="button secondary" href="https://github.com/mahrufa-binta-ali/clinical-rag-evaluation-framework">GitHub Repository</a>
@@ -492,6 +672,603 @@ def root() -> HTMLResponse:
     )
 
 
+@app.get("/demo")
+def demo() -> HTMLResponse:
+    return HTMLResponse(
+        content="""
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Interactive API Playground</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08111f;
+      --panel: #f8fbff;
+      --text: #f7f9fc;
+      --muted: #b8c6d9;
+      --ink: #102033;
+      --ink-muted: #526176;
+      --blue: #3b82f6;
+      --purple: #8b5cf6;
+      --border: rgba(255, 255, 255, 0.14);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.24), transparent 32rem),
+        radial-gradient(circle at top right, rgba(139, 92, 246, 0.22), transparent 30rem),
+        var(--bg);
+      color: var(--text);
+    }
+    main {
+      width: min(1040px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 36px 0 48px;
+    }
+    a { color: #cfe1ff; }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 22px;
+      color: var(--muted);
+    }
+    .topbar a { text-decoration: none; font-weight: 700; }
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(2.1rem, 6vw, 4.2rem);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin: 0 0 8px;
+      color: var(--ink);
+      font-size: 1.35rem;
+      letter-spacing: 0;
+    }
+    .lead {
+      max-width: 860px;
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.7;
+    }
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+    .panel, .result-card, .note {
+      border-radius: 8px;
+    }
+    .panel {
+      padding: 20px;
+      background: var(--panel);
+      color: var(--ink);
+      border: 1px solid rgba(234, 240, 251, 0.9);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22);
+    }
+    .section-copy {
+      margin: 0 0 16px;
+      color: var(--ink-muted);
+      line-height: 1.6;
+    }
+    .hidden { display: none; }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-weight: 750;
+    }
+    textarea, select, input[type="password"], input[type="file"] {
+      width: 100%;
+      border: 1px solid #cfd8e8;
+      border-radius: 8px;
+      background: white;
+      color: var(--ink);
+      font: inherit;
+    }
+    textarea {
+      min-height: 116px;
+      padding: 14px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    select {
+      height: 44px;
+      padding: 0 10px;
+    }
+    input[type="password"], input[type="file"] {
+      min-height: 44px;
+      padding: 10px;
+    }
+    .field { margin-bottom: 14px; }
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin: 8px 0 10px;
+    }
+    .example, .primary, .secondary-link {
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      border-radius: 8px;
+      cursor: pointer;
+      font: inherit;
+      text-decoration: none;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .example {
+      padding: 8px 10px;
+      color: var(--ink);
+      background: #eef5ff;
+    }
+    .primary {
+      min-width: 180px;
+      min-height: 46px;
+      padding: 0 18px;
+      color: white;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+    }
+    .secondary-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 15px;
+      color: white;
+      font-weight: 750;
+      background: #17243a;
+    }
+    .example:hover, .example:focus-visible, .primary:hover, .primary:focus-visible,
+    .secondary-link:hover, .secondary-link:focus-visible {
+      transform: translateY(-2px);
+      border-color: rgba(59, 130, 246, 0.75);
+      outline: none;
+    }
+    .results {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .result-card {
+      padding: 16px;
+      background: white;
+      color: var(--ink);
+      border: 1px solid #dbe4f2;
+    }
+    .result-card h3 {
+      margin: 0 0 8px;
+      font-size: 1.02rem;
+    }
+    .meta {
+      margin: 0 0 10px;
+      color: var(--ink-muted);
+      font-size: 0.92rem;
+    }
+    pre.json-output {
+      margin: 14px 0 0;
+      padding: 14px;
+      overflow: auto;
+      border-radius: 8px;
+      background: #eef5ff;
+      color: var(--ink);
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .preview {
+      margin: 0;
+      line-height: 1.55;
+      color: #25364a;
+    }
+    .note {
+      margin-top: 18px;
+      padding: 14px 16px;
+      color: #1e3554;
+      background: #eef5ff;
+      border: 1px solid #cfe0f8;
+      line-height: 1.6;
+    }
+    .note.warning {
+      background: #f4efff;
+      border-color: #ded0ff;
+    }
+    .error {
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+      color: #7f1d1d;
+    }
+    .empty {
+      padding: 18px;
+      border: 1px dashed #cfd8e8;
+      border-radius: 8px;
+      color: var(--ink-muted);
+      line-height: 1.6;
+    }
+    .two-fields {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 140px;
+      gap: 12px;
+    }
+    .api-key-toggle {
+      width: 100%;
+      text-align: left;
+      color: white;
+      background: #17243a;
+    }
+    @media (max-width: 760px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .two-fields { grid-template-columns: 1fr; }
+      .primary, .secondary-link { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <nav class="topbar" aria-label="Demo navigation">
+      <a href="/">Clinical RAG Evaluation Framework</a>
+      <span><a href="/docs">API Docs</a> | <a href="/health">API Status</a></span>
+    </nav>
+
+    <header>
+      <h1>Interactive API Playground</h1>
+      <p class="lead">
+        Test the hosted FastAPI demo from one page: run sample retrieval, upload and
+        index a public PDF, search uploaded documents, or open developer API tools.
+      </p>
+    </header>
+
+    <div class="stack">
+      <section class="panel hidden" id="api-key-panel" aria-labelledby="api-key-title">
+        <button class="primary api-key-toggle" id="api-key-toggle" type="button">
+          API Key Required for Upload and Full Query
+        </button>
+        <div class="hidden" id="api-key-body">
+          <p class="section-copy">
+            Enter the key before upload or full query. It stays only in browser memory
+            and is sent as X-API-Key.
+          </p>
+          <label for="api-key">API Key</label>
+          <input id="api-key" type="password" autocomplete="off" placeholder="Enter API key">
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="sample-title">
+        <h2 id="sample-title">Try the Sample Retrieval Demo</h2>
+        <p class="section-copy">
+          This built-in demo works immediately using a small public/synthetic sample corpus.
+        </p>
+        <div class="field">
+          <label for="sample-question">Question</label>
+          <textarea id="sample-question" required>What is retrieval augmented generation?</textarea>
+        </div>
+
+        <div class="field">
+          <label for="sample-top-k">Top K</label>
+          <select id="sample-top-k">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </div>
+
+        <label>Example questions</label>
+        <div class="examples">
+          <button class="example" type="button">What is retrieval augmented generation?</button>
+          <button class="example" type="button">Why is evidence retrieval important in healthcare AI?</button>
+          <button class="example" type="button">What data should not be uploaded?</button>
+          <button class="example" type="button">What does audit logging record?</button>
+        </div>
+        <p class="section-copy">The examples are suggestions. You can type your own question.</p>
+
+        <button class="primary" id="sample-button" type="button">Run Sample Retrieval</button>
+        <div class="results" id="sample-results">
+          <div class="empty">Run sample retrieval to see built-in evidence cards.</div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="upload-title">
+        <h2 id="upload-title">Upload and Index a PDF</h2>
+        <p class="section-copy">
+          Upload a public or synthetic PDF and rebuild the ChromaDB vector store so it
+          can be searched below.
+        </p>
+        <div class="field">
+          <label for="pdf-file">PDF file</label>
+          <input id="pdf-file" type="file" accept=".pdf,application/pdf">
+        </div>
+        <button class="primary" id="upload-button" type="button">Upload and Index PDF</button>
+        <div class="note warning">
+          Use only public, synthetic, or properly de-identified PDFs. Do not upload
+          PHI, PII, or real patient records.
+        </div>
+        <pre class="json-output" id="upload-output">Upload response will appear here.</pre>
+      </section>
+
+      <section class="panel" aria-labelledby="query-title">
+        <h2 id="query-title">Ask Questions from Uploaded Documents</h2>
+        <p class="section-copy">
+          Calls the full /query endpoint backed by the configured ChromaDB vector store.
+        </p>
+        <div class="two-fields">
+          <div class="field">
+            <label for="query-question">Question</label>
+            <textarea id="query-question">What evidence is available in the uploaded documents?</textarea>
+          </div>
+          <div class="field">
+            <label for="query-top-k">Top K</label>
+            <select id="query-top-k">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3" selected>3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+        </div>
+        <button class="primary" id="query-button" type="button">Search Uploaded Documents</button>
+        <div class="results" id="query-results">
+          <div class="empty">Query results from ChromaDB will appear here.</div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="developer-title">
+        <h2 id="developer-title">Developer API</h2>
+        <p class="section-copy">Use these endpoints for API inspection and status checks.</p>
+        <div class="button-row">
+          <a class="secondary-link" href="/docs">Open /docs</a>
+          <button class="primary" id="status-button" type="button">Check /health</button>
+        </div>
+        <pre class="json-output" id="status-output">Health response will appear here.</pre>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const apiKeyPanel = document.getElementById("api-key-panel");
+    const apiKeyToggle = document.getElementById("api-key-toggle");
+    const apiKeyBody = document.getElementById("api-key-body");
+    const apiKeyInput = document.getElementById("api-key");
+    const statusButton = document.getElementById("status-button");
+    const statusOutput = document.getElementById("status-output");
+    const sampleQuestion = document.getElementById("sample-question");
+    const sampleTopK = document.getElementById("sample-top-k");
+    const sampleButton = document.getElementById("sample-button");
+    const sampleResults = document.getElementById("sample-results");
+    const pdfFile = document.getElementById("pdf-file");
+    const uploadButton = document.getElementById("upload-button");
+    const uploadOutput = document.getElementById("upload-output");
+    const queryQuestion = document.getElementById("query-question");
+    const queryTopK = document.getElementById("query-top-k");
+    const queryButton = document.getElementById("query-button");
+    const queryResults = document.getElementById("query-results");
+
+    document.querySelectorAll(".example").forEach((button) => {
+      button.addEventListener("click", () => {
+        sampleQuestion.value = button.textContent;
+        sampleQuestion.focus();
+      });
+    });
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function optionalAuthHeaders() {
+      const key = apiKeyInput.value.trim();
+      return key ? {"X-API-Key": key} : {};
+    }
+
+    function renderJson(target, data) {
+      target.textContent = JSON.stringify(data, null, 2);
+    }
+
+    function renderDemoResults(data) {
+      if (!data.results || data.results.length === 0) {
+        sampleResults.innerHTML = '<div class="empty">No demo passages matched this question.</div>';
+        return;
+      }
+
+      sampleResults.innerHTML = data.results.map((item) => `
+        <article class="result-card">
+          <h3>Rank ${item.rank}: ${escapeHtml(item.source)}</h3>
+          <p class="meta">Score ${item.score} | ${escapeHtml(data.mode)}</p>
+          <p class="preview">${escapeHtml(item.preview)}</p>
+        </article>
+      `).join("");
+    }
+
+    function renderQueryResults(data) {
+      if (!data.results || data.results.length === 0) {
+        queryResults.innerHTML = '<div class="empty">No chunks returned.</div>';
+        return;
+      }
+
+      queryResults.innerHTML = data.results.map((item) => `
+        <article class="result-card">
+          <h3>Rank ${item.rank}: ${escapeHtml(item.source)}</h3>
+          <p class="meta">Page ${escapeHtml(item.page)} | Distance ${escapeHtml(item.distance)}</p>
+          <p class="preview">${escapeHtml(item.preview)}</p>
+        </article>
+      `).join("");
+    }
+
+    async function parseResponse(response) {
+      const contentType = response.headers.get("content-type") || "";
+      const body = contentType.includes("application/json")
+        ? await response.json()
+        : {detail: await response.text()};
+      if (!response.ok) {
+        const message = body.detail || `Request failed with status ${response.status}`;
+        throw new Error(typeof message === "string" ? message : JSON.stringify(message));
+      }
+      return body;
+    }
+
+    apiKeyToggle.addEventListener("click", () => {
+      apiKeyBody.classList.toggle("hidden");
+    });
+
+    async function loadDemoConfig() {
+      try {
+        const response = await fetch("/demo-config");
+        const config = await parseResponse(response);
+        if (config.api_key_required) {
+          apiKeyPanel.classList.remove("hidden");
+        }
+      } catch (error) {
+        console.warn("Could not load demo config", error);
+      }
+    }
+
+    statusButton.addEventListener("click", async () => {
+      statusButton.disabled = true;
+      statusOutput.textContent = "Checking API status...";
+      try {
+        const response = await fetch("/health");
+        renderJson(statusOutput, await parseResponse(response));
+      } catch (error) {
+        statusOutput.textContent = error.message || "Status check failed.";
+      } finally {
+        statusButton.disabled = false;
+      }
+    });
+
+    sampleButton.addEventListener("click", async () => {
+      sampleResults.innerHTML = '<div class="empty">Retrieving sample evidence...</div>';
+      sampleButton.disabled = true;
+      sampleButton.textContent = "Running...";
+      try {
+        const response = await fetch("/demo-query", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            question: sampleQuestion.value,
+            top_k: Number(sampleTopK.value)
+          })
+        });
+        renderDemoResults(await parseResponse(response));
+      } catch (error) {
+        sampleResults.innerHTML = `<div class="error">${escapeHtml(error.message || "Sample retrieval failed.")}</div>`;
+      } finally {
+        sampleButton.disabled = false;
+        sampleButton.textContent = "Run Sample Retrieval";
+      }
+    });
+
+    uploadButton.addEventListener("click", async () => {
+      if (!pdfFile.files.length) {
+        uploadOutput.textContent = "Choose a PDF file first.";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", pdfFile.files[0]);
+      uploadButton.disabled = true;
+      uploadOutput.textContent = "Uploading PDF...";
+
+      try {
+        const response = await fetch("/upload-and-index", {
+          method: "POST",
+          headers: optionalAuthHeaders(),
+          body: formData
+        });
+        const body = await parseResponse(response);
+        renderJson(uploadOutput, {
+          ...body,
+          next_step: "Now ask a question below."
+        });
+      } catch (error) {
+        uploadOutput.textContent = error.message || "Upload failed.";
+      } finally {
+        uploadButton.disabled = false;
+      }
+    });
+
+    queryButton.addEventListener("click", async () => {
+      queryResults.innerHTML = '<div class="empty">Querying ChromaDB...</div>';
+      queryButton.disabled = true;
+      queryButton.textContent = "Querying...";
+
+      try {
+        const response = await fetch("/query", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...optionalAuthHeaders()
+          },
+          body: JSON.stringify({
+            question: queryQuestion.value,
+            top_k: Number(queryTopK.value)
+          })
+        });
+        renderQueryResults(await parseResponse(response));
+      } catch (error) {
+        queryResults.innerHTML = `
+          <div class="error">
+            ${escapeHtml(error.message || "Query failed.")}
+            <br><br>
+            No indexed documents found yet. Upload and index a PDF first, or use the
+            sample retrieval demo.
+          </div>
+        `;
+      } finally {
+        queryButton.disabled = false;
+        queryButton.textContent = "Search Uploaded Documents";
+      }
+    });
+
+    loadDemoConfig();
+  </script>
+</body>
+</html>
+        """
+    )
+
+
+@app.post("/demo-query")
+def demo_query(request: DemoQueryRequest) -> DemoQueryResponse:
+    question = request.question.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Question must not be empty.")
+
+    top_k = min(request.top_k, len(DEMO_CORPUS))
+    return DemoQueryResponse(
+        question=question,
+        top_k=top_k,
+        mode="built-in demo corpus",
+        results=retrieve_demo_passages(question, top_k),
+    )
+
+
+@app.get("/demo-config")
+def demo_config() -> dict[str, bool]:
+    return {"api_key_required": bool(os.getenv(API_KEY_ENV_VAR))}
+
+
 @app.get("/health")
 def health(request: Request) -> dict[str, str]:
     logger.info("Health check")
@@ -554,6 +1331,80 @@ def upload_pdf(request: Request, file: UploadFile = File(...)) -> dict[str, str]
 
     logger.info("Uploaded PDF saved: %s", filename)
     return {"filename": filename, "saved_path": str(saved_path)}
+
+
+@app.post("/upload-and-index", dependencies=[Depends(require_api_key)])
+def upload_and_index_pdf(request: Request, file: UploadFile = File(...)) -> dict[str, str]:
+    filename = Path(file.filename or "").name
+    if not filename or Path(filename).suffix.lower() != ".pdf":
+        logger.warning("Rejected non-PDF upload-index request: %s", file.filename)
+        write_audit_event(
+            event="upload_index_failed",
+            endpoint="/upload-and-index",
+            status="rejected",
+            request=request,
+            filename=filename or None,
+            error_type="InvalidUpload",
+            error_message="Only .pdf files are allowed.",
+        )
+        raise HTTPException(status_code=400, detail="Only .pdf files are allowed.")
+
+    write_audit_event(
+        event="upload_index_started",
+        endpoint="/upload-and-index",
+        status="started",
+        request=request,
+        filename=filename,
+    )
+
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    saved_path = DATA_DIR / filename
+
+    try:
+        with saved_path.open("wb") as output_file:
+            shutil.copyfileobj(file.file, output_file)
+
+        indexed_chunks = ingest_documents(
+            data_dir=DATA_DIR,
+            persist_dir=PERSIST_DIR,
+            chunking_method=CHUNKING_METHOD,
+            token_chunk_size=CHUNK_SIZE_TOKENS,
+            token_overlap=CHUNK_OVERLAP_TOKENS,
+            char_chunk_size=CHUNK_SIZE_CHARS,
+            char_overlap=CHUNK_OVERLAP_CHARS,
+        )
+    except Exception as error:
+        logger.exception("Failed to upload and index PDF: %s", filename)
+        write_audit_event(
+            event="upload_index_failed",
+            endpoint="/upload-and-index",
+            status="error",
+            request=request,
+            filename=filename,
+            error_type=type(error).__name__,
+            error_message=str(error),
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to upload and index PDF.",
+        ) from error
+    finally:
+        file.file.close()
+
+    logger.info("Uploaded PDF indexed: %s", filename)
+    write_audit_event(
+        event="upload_index_completed",
+        endpoint="/upload-and-index",
+        status="indexed",
+        request=request,
+        filename=filename,
+        indexed_chunks=indexed_chunks,
+    )
+    return {
+        "filename": filename,
+        "status": "indexed",
+        "message": "PDF uploaded and indexed successfully.",
+    }
 
 
 @app.post("/query", dependencies=[Depends(require_api_key)])
