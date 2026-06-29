@@ -192,6 +192,29 @@ Available endpoints:
 
 The upload endpoint does not automatically ingest documents. After uploading PDFs, run `python -m clinical_rag_eval.ingest` to rebuild the vector store. API logs are written to `logs/api.log`; uploaded file contents are not logged.
 
+### Optional API Key Protection
+
+API key protection is optional. If `API_KEY` is not set, `/upload` and `/query` remain open for local development and portfolio demos. Set `API_KEY` in the environment to protect those endpoints while keeping `/health`, `/docs`, and OpenAPI routes public.
+
+PowerShell example:
+
+```powershell
+$env:API_KEY="change-me"
+python -m uvicorn clinical_rag_eval.api:app --reload
+```
+
+Include the key in protected requests:
+
+```http
+X-API-Key: change-me
+```
+
+### Audit Logging
+
+Normal API logs are written to `logs/api.log`. Structured audit logs are written to `logs/audit.log` as JSON lines, recording important API events and errors.
+
+Audit logs intentionally avoid API keys, uploaded file contents, full query text, and retrieved chunk contents.
+
 ### API Documentation
 
 ![FastAPI Docs Overview](docs/screenshots/fastapi-docs-overview.png)
