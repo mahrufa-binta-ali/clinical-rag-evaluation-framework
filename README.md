@@ -186,7 +186,9 @@ python -m uvicorn clinical_rag_eval.api:app --reload
 
 Available endpoints:
 
+- `GET http://127.0.0.1:8000/` provides basic project info.
 - `GET http://127.0.0.1:8000/health` returns API status.
+- `GET http://127.0.0.1:8000/docs` provides interactive API documentation.
 - `POST http://127.0.0.1:8000/upload` accepts a `.pdf` file and saves it to `data/`.
 - `POST http://127.0.0.1:8000/query` accepts `{"question": "...", "top_k": 5}` and returns retrieved chunks from the existing ChromaDB collection.
 

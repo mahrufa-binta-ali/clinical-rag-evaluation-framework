@@ -13,6 +13,14 @@ def clear_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("API_KEY", raising=False)
 
 
+def test_root_endpoint() -> None:
+    with TestClient(app) as client:
+        response = client.get("/")
+
+    assert response.status_code == 200
+    assert response.json()["project"] == "Clinical RAG Evaluation Framework"
+
+
 def test_health_endpoint() -> None:
     with TestClient(app) as client:
         response = client.get("/health")

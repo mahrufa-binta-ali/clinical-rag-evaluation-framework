@@ -150,6 +150,20 @@ async def lifespan(app: FastAPI) -> Any:
 app = FastAPI(title=PROJECT_NAME, lifespan=lifespan)
 
 
+@app.get("/")
+def root() -> dict[str, str]:
+    return {
+        "project": PROJECT_NAME,
+        "status": "running",
+        "docs": "/docs",
+        "health": "/health",
+        "message": (
+            "Retrieval-first healthcare AI API. Use only public, "
+            "de-identified, or synthetic documents."
+        ),
+    }
+
+
 @app.get("/health")
 def health(request: Request) -> dict[str, str]:
     logger.info("Health check")
