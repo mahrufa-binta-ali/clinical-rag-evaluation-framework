@@ -238,6 +238,19 @@ This demo deployment exposes only retrieval endpoints. No real patient data shou
 
 `data/` and `chroma_db/` are local/generated directories and are not committed. On free cloud deployments, `/query` may not work until documents are uploaded and ingestion is run or a vector store is provided.
 
+
+## Live Demo
+
+The FastAPI Docker app is deployed on Hugging Face Spaces.
+
+- Health check: https://mahrufa-clinical-rag-evaluation-framework.hf.space/health
+- API documentation: https://mahrufa-clinical-rag-evaluation-framework.hf.space/docs
+- Hugging Face Space: https://huggingface.co/spaces/Mahrufa/clinical-rag-evaluation-framework
+
+The deployed demo exposes the API layer of the project. The `/health` and `/docs` endpoints are available publicly. The `/query` endpoint requires a populated local ChromaDB vector store, so it may not return retrieval results on the hosted demo unless documents and vector indexes are available inside the deployment environment.
+
+This deployment is intended as a portfolio demonstration of Dockerized FastAPI deployment for a retrieval-first healthcare AI project. Do not upload real patient data or sensitive clinical documents.
+
 ## Optional LangChain Retrieval Demo
 
 The main retrieval pipeline is implemented directly with ChromaDB and SentenceTransformers for transparency and easier debugging. LangChain is included as an optional wrapper using `langchain-chroma` and `langchain-huggingface` to demonstrate framework integration over the same persisted Chroma collection. This is still retrieval-only; it does not add LLM-based RAG answer generation.
