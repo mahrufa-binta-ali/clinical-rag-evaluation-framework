@@ -229,19 +229,6 @@ This demo deployment exposes only retrieval endpoints. No real patient data shou
 
 `data/` and `chroma_db/` are local/generated directories and are not committed. On free cloud deployments, `/query` may not work until documents are uploaded and ingestion is run or a vector store is provided.
 
-### API Documentation
-
-![FastAPI Docs Overview](docs/screenshots/fastapi-docs-overview.png)
-
-### Health Check Response
-
-![Health Endpoint Response](docs/screenshots/health-endpoint-response.png)
-
-### Query Endpoint Response
-
-![Query Endpoint Response](docs/screenshots/query-endpoint-response.png)
-
->>>>>>> 97d371e (Make Docker configuration deployment ready)
 ## Optional LangChain Retrieval Demo
 
 The main retrieval pipeline is implemented directly with ChromaDB and SentenceTransformers for transparency and easier debugging. LangChain is included as an optional wrapper using `langchain-chroma` and `langchain-huggingface` to demonstrate framework integration over the same persisted Chroma collection. This is still retrieval-only; it does not add LLM-based RAG answer generation.
