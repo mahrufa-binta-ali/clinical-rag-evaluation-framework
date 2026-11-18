@@ -445,6 +445,27 @@ Exact comparison metrics are written to `results/embedding_comparison.json` and 
 - More advanced chunking strategies, such as section-aware or sentence-aware chunking.
 - Hybrid retrieval experiments.
 
+## Retrieval Boundary Failure Slice (Proposed)
+
+`docs/retrieval_boundary_failure_slice.jsonl` is a small synthetic fixture set for a later generation-aware evaluation layer. It records cases where evidence was retrieved, but the downstream answer would still be unsafe because the claim is unsupported, contradicted, stale, or outside the retrieved scope. The current pipeline stops at retrieval; this file is not wired into the code and is intended as a starting point for that next layer.
+
+Each row has these fields:
+
+- `query_id`
+- `retrieved_source_ids`
+- `answer_claim`
+- `support_status`: `supported | contradicted | not_found | stale_or_scope_mismatch`
+- `clinical_risk_label`: `none | unsupported_claim | missed_escalation | unsafe_reassurance | citation_mismatch`
+- `evidence_pointer`: source id, page, or chunk id
+- `allowed_user_facing_behavior`: `answer | defer | ask_clarifying_question | escalate`
+
+Labeling notes on the fixtures:
+
+- `q2` shows a contradiction: the correct evidence is retrieved and the claim still contradicts it, so the recorded allowed behavior is `defer`, not `answer`.
+- `q4` shows why `support_status` is evidence-relative: the retrieved passage supports antacids for reflux, but it does not establish that this presentation is reflux, so `support_status` is `not_found` even though the passage is topically relevant. The `missed_escalation` risk label and the `escalate` behavior stay separate so red-flag symptoms are not hidden by a topically relevant retrieval hit.
+
+All rows are synthetic and use placeholder source ids, not real documents. Nothing in this file is clinical advice or a clinical validation claim.
+
 ## Research Portfolio Notes
 
 This repository is structured to demonstrate the retrieval foundation of a healthcare AI system: data ingestion, metadata preservation, local embeddings, vector persistence, and evidence-first querying. The implementation is intentionally small, but the boundaries are designed so future API, evaluation, and generation layers can be added without rewriting the core pipeline.
